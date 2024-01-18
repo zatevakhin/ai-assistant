@@ -1,0 +1,29 @@
+FROM python:3.11-slim
+
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility,graphics,display
+
+RUN apt update \
+    && apt install --no-install-recommends -y git neovim curl build-essential python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt update \
+    && apt install --no-install-recommends -y libopus0 libportaudio2 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /tmp/requirements.txt
+
+RUN pip install -r /tmp/requirements.txt \
+    && rm -rf /tmp/*
+
+COPY assistant/ /app/assistant/
+
+WORKDIR /app/
+
+RUN echo '#!/bin/bash' > /tmp/entrypoint.sh \
+    && echo 'set -e' >> /tmp/entrypoint.sh \
+    && echo 'export PYTHONPATH="."' >> /tmp/entrypoint.sh \
+    && echo 'exec python /app/assistant/main.py $*' >> /tmp/entrypoint.sh \
+    && chmod +x /tmp/entrypoint.sh
+
+ENTRYPOINT ["/tmp/entrypoint.sh"]

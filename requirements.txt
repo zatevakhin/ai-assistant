@@ -1,0 +1,9 @@
+langchain==0.1.1
+langchain-core==0.1.11
+langchain-community==0.0.13
+pymumble==1.6.1
+resampy==0.4.2
+git+https://github.com/zatevakhin/voice-pulse.git@main
+git+https://github.com/zatevakhin/voice-forge@main
+piper-tts==1.2.0
+faster-whisper==0.10.0

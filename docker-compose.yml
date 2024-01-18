@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  mumble:
+    build:
+      context: https://github.com/mumble-voip/mumble-docker.git#master
+      dockerfile: Dockerfile
+    image: mumble
+    ports:
+      - "64738:64738"
+      - "64738:64738/udp"
+    volumes:
+      - "${PWD}/data/mumble:/data"
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama
+    runtime: nvidia
+    volumes:
+      - ${PWD}/data/ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    container_name: ollama
+
+  assistant:
+    build:
+      context: .
+      dockerfile: Dockerfile.assistant
+    image: assistant
+    volumes:
+      - "${PWD}/data/piper-models:/data/piper-models"
+      - "${PWD}/data/whisper-models:/data/whisper-models"
+      - "${PWD}/data/vad-records:/data/vad-records"
+    restart: unless-stopped
+    depends_on:
+      - ollama
+      - mumble
+
