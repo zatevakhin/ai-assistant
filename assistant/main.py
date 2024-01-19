@@ -43,6 +43,7 @@ from assistant.config import (
 MY_SAMPLERATE = 16000
 
 
+# TODO: Make as class method
 def sound_received_handler(
     handler: AudioBufferHandler, user: str, soundchunk: SoundChunk
 ):
@@ -51,6 +52,7 @@ def sound_received_handler(
 
     handler(soundchunk)
 
+# TODO: Make as class method
 def synthesize_and_stream(mumble: pymumble_py3.Mumble, tts: PiperTts, tokens: List[str]):
     """
     Synthesizes speech from tokens and streams it to a Mumble server.
@@ -73,6 +75,7 @@ def synthesize_and_stream(mumble: pymumble_py3.Mumble, tts: PiperTts, tokens: Li
 
 
 if __name__ == "__main__":
+    # TODO: Wrap code into class
     whisper = WhisperModel(
         WHISPER_MODEL_NAME,
         device=WHISPER_USE_DEVICE,
@@ -90,10 +93,13 @@ if __name__ == "__main__":
     prompt = PromptTemplate.from_template(
         f"You are a helpful AI assistant. Your name is {ASSISTANT_NAME}. Your answers always short and concise.\nuser: {{query}}\n{ASSISTANT_NAME}: "
     )
+
+    # TODO: Make a custom output parser that supports interruptions (with thread event?)
     chain = prompt | llm.bind(stop=["user:", *OLLAMA_LLM_STOP_TOKENS]) | output_parser
 
     config = Config(
         vad_engine=VadEngine.SILERIO,
+        # TODO: Pot this magic number into config.
         block_duration=32,
         silence_threshold=VAD_SILENCE_THRESHOLD,
     )
@@ -118,25 +124,34 @@ if __name__ == "__main__":
     time.sleep(1)
 
     for speech in Listener(config, stream):
+        # TODO: Fix logger for speech segments.
         # record_audio_chunk(
         #     record_audio_chunk,
         #     directory=VAD_LOG_AUDIO_DIRECTORY,
         #     samplerate=SPEECH_PIPELINE_SAMPLERATE,
         # )
 
+        # TODO: Use logger
         print(f"speech ({type(speech)})", len(speech))
 
+        # TODO: Add proper logger for transcribed text.
         segments, info = whisper.transcribe(speech)
 
+        # TODO: Use logger
         print(f"> {info.language} ({info.language_probability})")
 
         text = ". ".join(
             map(lambda seg: seg.text, filter(lambda seg: seg.text, segments))
         ).strip()
+
+        # TODO: Use logger
         print(">", text)
 
+        # TODO: Make handlers for a subset of different languages with a specific probability.
+        #       Think there might be 2-3 languages... To keep it simple.
         if info.language in ["en"] and info.language_probability > 0.6:
             bufferized_tokens = []
+            # TODO: May be better to handle interruptions here with simple wrapper on this generator?
             for token in chain.stream({"query": text}):
                 bufferized_tokens.append(token)
 
