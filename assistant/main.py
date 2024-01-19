@@ -90,7 +90,7 @@ if __name__ == "__main__":
     prompt = PromptTemplate.from_template(
         f"You are a helpful AI assistant. Your name is {ASSISTANT_NAME}. Your answers always short and concise.\nuser: {{query}}\n{ASSISTANT_NAME}: "
     )
-    chain = prompt | llm.bind(stop=OLLAMA_LLM_STOP_TOKENS) | output_parser
+    chain = prompt | llm.bind(stop=["user:", *OLLAMA_LLM_STOP_TOKENS]) | output_parser
 
     config = Config(
         vad_engine=VadEngine.SILERIO,
