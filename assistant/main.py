@@ -80,6 +80,8 @@ if __name__ == "__main__":
         compute_type=WHISPER_USE_COMPUTE_TYPE,
         download_root=WHISPER_MODELS_LOCATION,
     )
+
+    # TODO: Add download of models
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
 
     output_parser = StrOutputParser()
@@ -121,6 +123,7 @@ if __name__ == "__main__":
     mumble.start()
     time.sleep(1)
 
+    # TODO: Silero-VAD model gets downloaded every time, need to add caching
     for speech in Listener(config, stream):
         # TODO: Fix logger for speech segments.
         # record_audio_chunk(
