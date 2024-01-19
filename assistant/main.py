@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import time
 from functools import partial
-
+from typing import List
 import numpy as np
 import pymumble_py3
 import resampy
@@ -50,6 +50,26 @@ def sound_received_handler(
         return
 
     handler(soundchunk)
+
+def synthesize_and_stream(mumble: pymumble_py3.Mumble, tts: PiperTts, tokens: List[str]):
+    """
+    Synthesizes speech from tokens and streams it to a Mumble server.
+
+    Parameters:
+    - mumble: An instance of a Mumble client with an audio output stream.
+    - tts: An instance of a text-to-speech class with a synthesize_stream method.
+    - bufferized_tokens: A list of text tokens to be synthesized.
+    """
+    # Synthesize speech from the tokens
+    data, samplerate = tts.synthesize_stream("".join(tokens))
+
+    # data = data.astype(np.float32, order="C") / np.float32(np.iinfo(data.dtype).max)
+
+    # Resample the audio data to the target samplerate
+    resampled_data = resampy.resample(data, samplerate, PYMUMBLE_SAMPLERATE)
+
+    # Stream the resampled audio data to the Mumble server
+    mumble.sound_output.add_sound(resampled_data.astype(np.int16).tobytes())
 
 
 if __name__ == "__main__":
@@ -121,14 +141,8 @@ if __name__ == "__main__":
                 bufferized_tokens.append(token)
 
                 if token in ASSISTANT_BREAK_ON_TOKENS:
-                    data, sr = tts.synthesize_stream("".join(bufferized_tokens))
-                    resampled_data = resampy.resample(data, sr, PYMUMBLE_SAMPLERATE)
-                    mumble.sound_output.add_sound(
-                        resampled_data.astype(np.int16).tobytes()
-                    )
+                    synthesize_and_stream(mumble, tts, bufferized_tokens)
                     bufferized_tokens = []
 
-            data, sr = tts.synthesize_stream("".join(bufferized_tokens))
-            resampled_data = resampy.resample(data, sr, PYMUMBLE_SAMPLERATE)
-            mumble.sound_output.add_sound(resampled_data.astype(np.int16).tobytes())
+            synthesize_and_stream(mumble, tts, bufferized_tokens)
             bufferized_tokens = []
