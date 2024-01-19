@@ -20,7 +20,6 @@ services:
       - ${PWD}/data/ollama:/root/.ollama
     ports:
       - "11434:11434"
-    container_name: ollama
 
   assistant:
     build:
