@@ -40,8 +40,6 @@ from assistant.config import (
     WHISPER_USE_DEVICE,
 )
 
-MY_SAMPLERATE = 16000
-
 
 # TODO: Make as class method
 def sound_received_handler(
