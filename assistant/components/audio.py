@@ -9,7 +9,7 @@ from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from pymumble_py3.soundqueue import SoundChunk
 
 
-class AudioBufferHandler:
+class AudioBufferTransformer:
     def __init__(
         self,
         callback: Callable[[np.ndarray[np.float32]], None],
@@ -110,3 +110,21 @@ def record_audio_chunk(
         filename, mode=mode, samplerate=samplerate, channels=1, format=audio_format
     ) as file:
         file.write(chunk)
+
+
+def audio_length(audio_data: np.ndarray, sample_rate: int) -> int:
+    """
+    Calculate the length of the audio in milliseconds.
+
+    :param audio_data: np.ndarray containing audio data
+    :param sample_rate: Sample rate of the audio in Hz
+    :return: Length of the audio in milliseconds
+    """
+    # Number of samples in the audio data
+    num_samples = audio_data.shape[0]
+
+    # Calculate length in seconds and convert to milliseconds
+    length_in_seconds = num_samples / sample_rate
+    length_in_milliseconds = int(length_in_seconds * 1000)
+
+    return length_in_milliseconds
