@@ -16,7 +16,6 @@ from voice_forge import PiperTts
 from zenoh import Sample
 import zenoh
 import numpy as np
-from .audio import audio_length
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +57,6 @@ class SpeechSynthesisProcess:
             speech, samplerate = self.tts.synthesize_stream(sentence)
             speech_resampled = self._resample_speec_for_mumble(speech, samplerate)
 
-            # length = audio_length(speech_resampled, PYMUMBLE_SAMPLERATE)
-            # logger.info(f"Sentence: '{sentence}' is {length}ms long")
             self.pub_play_audio.put(speech_resampled.tobytes())
 
             self.sentences_queue.task_done()

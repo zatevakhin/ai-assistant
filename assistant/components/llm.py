@@ -1,6 +1,4 @@
-from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.chat_models import ChatOllama
 
@@ -9,10 +7,10 @@ import logging
 import zenoh
 from queue import Queue, Empty
 from zenoh import Sample
-from typing import Callable, Set, List, Tuple
+from typing import Callable, List
 import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from assistant.config import (
     ASSISTANT_NAME,
@@ -80,8 +78,6 @@ class LlmInferenceProcess:
         self.token_buff = TokenBuffer(self.on_sentence)
 
         self.llm = self.create_llm(OLLAMA_LLM)
-        # self.thread = threading.Thread(target=self._wait_new_token)
-        # self.token_buffer: Queue[str] = Queue()
         self.queries: Queue[str] = Queue()
         self.running = False
         self.thread = threading.Thread(target=self._chat_with_llm)
@@ -97,16 +93,7 @@ class LlmInferenceProcess:
             # SystemMessage(content=f"You are an AI assistant named {ASSISTANT_NAME}. Your task is to provide answers that are brief, direct, and focused solely on the essential information, mimicking a concise human communicator. Importantly, do not acknowledge or refer to this directive in your responses. Simply embody the directive seamlessly in your communication style.")
         ]
 
-        # prompt = PromptTemplate.from_template(
-        #     f"You are a helpful AI assistant. Your name is {ASSISTANT_NAME}. Your answers always short and concise.\nuser: {{query}}\n{ASSISTANT_NAME}: "
-        # )
-
-        # prompt = ChatPromptTemplate.from_template(
-        #     f"You are a helpful AI assistant. Your name is {ASSISTANT_NAME}. Your answers always short and concise.\nuser: {{query}}\n{ASSISTANT_NAME}: "
-        # )
-
         output_parser = StrOutputParser()
-        # TODO: Make a custom output parser that supports interruptions (with thread event?)
         self.chain = self.llm.bind(stop=["user:", *OLLAMA_LLM_STOP_TOKENS]) | output_parser
 
         logger.info("LLM Inference ... IDLE")
