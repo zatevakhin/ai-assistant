@@ -2,10 +2,10 @@ version: '3.8'
 
 services:
   mumble:
-    build:
-      context: https://github.com/mumble-voip/mumble-docker.git#master
-      dockerfile: Dockerfile
-    image: mumble
+    # build:
+    #   context: https://github.com/mumble-voip/mumble-docker.git#master
+    #   dockerfile: Dockerfile
+    image: mumblevoip/mumble-server:latest
     ports:
       - "64738:64738"
       - "64738:64738/udp"
