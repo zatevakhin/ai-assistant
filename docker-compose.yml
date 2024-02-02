@@ -16,16 +16,18 @@ services:
   ollama:
     image: ollama/ollama
     runtime: nvidia
+    privileged: true
     volumes:
       - ${PWD}/data/ollama:/root/.ollama
     ports:
       - "11434:11434"
+    restart: unless-stopped
 
   assistant:
     build:
       context: .
-      dockerfile: Dockerfile.assistant
-    image: assistant
+      dockerfile: assistant.Dockerfile
+    image: assistant:latest
     volumes:
       - "${PWD}/data/piper-models:/data/piper-models"
       - "${PWD}/data/whisper-models:/data/whisper-models"
@@ -34,4 +36,3 @@ services:
     depends_on:
       - ollama
       - mumble
-
