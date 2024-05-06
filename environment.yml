@@ -1,0 +1,11 @@
+name: ai-assistant
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip
+  - python=3.11
+  - pip:
+    - -r requirements.txt
+
+
