@@ -16,7 +16,7 @@ RUN echo -n "${DEV_USERNAME}:${DEV_USERNAME}" | chpasswd
 RUN echo "${DEV_USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 RUN apt update \
-    && apt install --no-install-recommends -y libopus0 libportaudio2 \
+    && apt install --no-install-recommends -y ffmpeg libopus0 libportaudio2 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /tmp/requirements.txt
