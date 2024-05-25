@@ -128,3 +128,25 @@ def audio_length(audio_data: np.ndarray, sample_rate: int) -> int:
     length_in_milliseconds = int(length_in_seconds * 1000)
 
     return length_in_milliseconds
+
+
+def chop_audio(audio_data: np.ndarray, sample_rate: int, segment_length_ms: int) -> list:
+    """
+    Chop audio data into segments of given length.
+
+    :param audio_data: np.ndarray containing audio data
+    :param sample_rate: Sample rate of the audio in Hz
+    :param segment_length_ms: Length of each segment in milliseconds
+    :return: List of numpy arrays, each representing a segment of the audio
+    """
+    # Calculate number of samples in each segment
+    num_samples_per_segment = int(sample_rate * segment_length_ms / 1000)
+
+    # Calculate total number of segments
+    total_segments = len(audio_data) // num_samples_per_segment
+
+    # Chop audio into segments
+    segments = [audio_data[i * num_samples_per_segment: (i + 1) * num_samples_per_segment]
+                for i in range(total_segments)]
+
+    return segments

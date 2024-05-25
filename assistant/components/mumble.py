@@ -11,7 +11,7 @@ from pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from pymumble_py3.soundqueue import SoundChunk
 
-from .audio import AudioBufferTransformer, audio_length
+from .audio import AudioBufferTransformer, audio_length, chop_audio
 from assistant.config import (
     ASSISTANT_NAME,
     MUMBLE_SERVER_HOST,
@@ -37,6 +37,7 @@ class MumbleProcess:
         self.running = False
         self.thread = threading.Thread(target=self._play_audio_in_mumble)
         self.is_playing = threading.Event()
+        self.is_interrupted = threading.Event()
 
         self.sound_queue: Queue[Tuple[int, np.ndarray[np.int16]]] = Queue()
 
@@ -61,6 +62,7 @@ class MumbleProcess:
         if self.is_playing.is_set() and self.sound_queue.qsize() > 0:
             # NOTE: This will interrupt only on the end of sentence.
             self.sound_queue = Queue()
+            self.is_interrupted.set()
 
     def on_play_audio(self, sample: Sample):
         logger.info(f"> on_play_audio({type(sample)})")
@@ -80,9 +82,16 @@ class MumbleProcess:
             logger.info(f"Theres is '{self.sound_queue.qsize()}' audio chunks in queue.")
             logger.info(f"Current chunk is {length}ms long.")
             # NOTE: Audio chunks can be even smaller to have faster interruption.
-            self.client.sound_output.add_sound(sound.tobytes())
-            time.sleep(length / 1000)
+
+            for seg in chop_audio(sound, PYMUMBLE_SAMPLERATE, 20):
+                self.client.sound_output.add_sound(seg.tobytes())
+                time.sleep(0.0195) # magic
+
+                if self.is_interrupted.is_set():
+                    break
+
             self.is_playing.clear()
+            self.is_interrupted.clear()
 
 
     def on_new_sound(self, sound: np.ndarray[np.float32]):
