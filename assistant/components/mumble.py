@@ -41,7 +41,14 @@ class MumbleProcess:
 
         self.sound_queue: Queue[Tuple[int, np.ndarray[np.int16]]] = Queue()
 
-        self.zenoh_session = zenoh.open(zenoh.Config())
+        self.zenoh_session = zenoh.open({
+            "connect": {
+                "endpoints": ["tcp/localhost:7447"],
+            },
+            "listen": {
+                "endpoints": ["tcp/localhost:7447"],
+            },
+        })
         self.pub_mumble_sound = self.zenoh_session.declare_publisher(TOPIC_MUMBLE_SOUND_NEW)
         self.sub_play_audio = self.zenoh_session.declare_subscriber(TOPIC_MUMBLE_PLAY_AUDIO, self.on_play_audio)
         self.sub_on_interruption = self.zenoh_session.declare_subscriber(TOPIC_MUMBLE_INTERRUPT_AUDIO, self.on_interruption)

@@ -18,7 +18,11 @@ logger = logging.getLogger(__name__)
 
 class SpeechTranscriberProcess:
     def __init__(self):
-        self.zenoh_session = zenoh.open(zenoh.Config())
+        self.zenoh_session = zenoh.open({
+            "connect": {
+                "endpoints": ["tcp/localhost:7447"],
+            },
+        })
         self.sub_mumble_sound = self.zenoh_session.declare_subscriber(TOPIC_VAD_SPEECH_NEW, self.on_new_speech)
         self.pub_transcription_done = self.zenoh_session.declare_publisher(TOPIC_TRANSCRIPTION_DONE)
 

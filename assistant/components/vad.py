@@ -27,7 +27,11 @@ class VadProcess:
         self.thread = threading.Thread(target=self._process_speech)
         self.running = False
 
-        self.zenoh_session = zenoh.open(zenoh.Config())
+        self.zenoh_session = zenoh.open({
+            "connect": {
+                "endpoints": ["tcp/localhost:7447"],
+            },
+        })
         self.sub_mumble_sound = self.zenoh_session.declare_subscriber(TOPIC_MUMBLE_SOUND_NEW, self.on_new_sound)
         self.pub_new_speech = self.zenoh_session.declare_publisher(TOPIC_VAD_SPEECH_NEW)
 

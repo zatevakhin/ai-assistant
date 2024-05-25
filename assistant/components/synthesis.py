@@ -22,7 +22,11 @@ logger = logging.getLogger(__name__)
 
 class SpeechSynthesisProcess:
     def __init__(self) -> None:
-        self.zenoh_session = zenoh.open(zenoh.Config())
+        self.zenoh_session = zenoh.open({
+            "connect": {
+                "endpoints": ["tcp/localhost:7447"],
+            },
+        })
         self.sub_on_sentence = self.zenoh_session.declare_subscriber(TOPIC_LLM_ON_SENTENCE, self.on_sentence)
         self.sub_on_interrupt = self.zenoh_session.declare_subscriber(TOPIC_SPEECH_SYNTHESIS_INTERRUPT, self.on_interruption)
         self.pub_play_audio = self.zenoh_session.declare_publisher(TOPIC_MUMBLE_PLAY_AUDIO)

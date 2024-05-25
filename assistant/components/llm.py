@@ -63,7 +63,11 @@ class TokenBuffer:
 
 class LlmInferenceProcess:
     def __init__(self) -> None:
-        self.zenoh_session = zenoh.open(zenoh.Config())
+        self.zenoh_session = zenoh.open({
+            "connect": {
+                "endpoints": ["tcp/localhost:7447"],
+            },
+        })
         self.sub_on_query = self.zenoh_session.declare_subscriber(TOPIC_TRANSCRIPTION_DONE, self.on_query)
         self.sub_llm_stream_interrupt = self.zenoh_session.declare_subscriber(TOPIC_LLM_STREAM_INTERRUPT, self.on_interruption)
         self.pub_interrupt = self.zenoh_session.declare_publisher(TOPIC_LLM_STREAM_INTERRUPT)
@@ -158,6 +162,7 @@ class LlmInferenceProcess:
 
         if self.is_chatting.is_set():
             logger.warning("Interrupting because LLM inference is running.")
+            self.messages.append(HumanMessage(content=text))
             self.pub_interrupt.put({})
             return
 
@@ -186,7 +191,7 @@ class LlmInferenceProcess:
         self.messages.append(AIMessage(content=ai_response))
 
         if response.interrupted:
-            self.messages.append(SystemMessage(content=f"Note, {ASSISTANT_NAME}, you were interrupted by a user."))
+            self.messages.append(SystemMessage(content=f"Note, {ASSISTANT_NAME}, you were interrupted by a user with previous message."))
 
     def run(self):
         self.running = True
