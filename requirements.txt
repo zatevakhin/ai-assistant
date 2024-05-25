@@ -3,8 +3,9 @@ langchain-core==0.1.11
 langchain-community==0.0.13
 pymumble==1.6.1
 resampy==0.4.2
-git+https://github.com/zatevakhin/voice-pulse.git@0.2.2
-git+https://github.com/zatevakhin/voice-forge.git@0.1.0
+git+https://github.com/zatevakhin/voice-pulse.git@0.2.3
+git+https://github.com/zatevakhin/voice-forge.git@0.1.1
 piper-tts==1.2.0
-faster-whisper==0.10.0
-rich == 13.7.0
+faster-whisper==1.0.2
+rich==13.7.0
+eclipse-zenoh==0.11.0rc2
