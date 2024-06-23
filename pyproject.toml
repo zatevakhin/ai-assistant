@@ -17,7 +17,7 @@ rich = "^13.7.1"
 eclipse-zenoh = "^0.11.0"
 langchain-core = "^0.2.9"
 langchain-community = "^0.2.5"
-voice-pulse = {git = "https://github.com/zatevakhin/voice-pulse.git", rev = "0.2.3"}
+voice-pulse = {git = "https://github.com/zatevakhin/voice-pulse.git", rev = "0.2.4"}
 voice-forge = {git = "https://github.com/zatevakhin/voice-forge.git", rev = "0.1.1"}
 
 [tool.poetry.group.dev.dependencies]

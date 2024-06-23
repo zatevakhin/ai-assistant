@@ -3025,7 +3025,7 @@ resolved_reference = "383f6bb6ffe89c717fd0c03ab2b84ab5945ae55a"
 
 [[package]]
 name = "voice-pulse"
-version = "0.2.3"
+version = "0.2.4"
 description = "Voice-Pulse is a Python library for real-time speech detection and collection, supporting multiple configurable VAD engines like WebRTC and Silero. Ideal for real-time speech processing applications."
 optional = false
 python-versions = "^3.9"
@@ -3045,8 +3045,8 @@ webrtcvad = "^2.0.10"
 [package.source]
 type = "git"
 url = "https://github.com/zatevakhin/voice-pulse.git"
-reference = "0.2.3"
-resolved_reference = "52367c42c6fe2e3d1be2724fc338e2f33747f02f"
+reference = "0.2.4"
+resolved_reference = "177f8df45043a4802b8e275a84362238617cb4fa"
 
 [[package]]
 name = "wcwidth"
@@ -3178,4 +3178,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4d8431a9c39fb4f7877e659e10781055d2274890f4a4ec59c4f2bfcf8e83a43b"
+content-hash = "8b88633d74ecfd15138058b324fc1615285f3b27c58aa44207bcdeb00c617bc0"
