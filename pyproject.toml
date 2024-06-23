@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "ai-assistant"
+version = "0.1.0"
+description = ""
+authors = ["Ivan Zatevakhin"]
+license = "GPLv3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+langchain = "^0.2.5"
+piper-tts = "^1.2.0"
+pymumble = "^1.6.1"
+resampy = "^0.4.3"
+faster-whisper = "^1.0.2"
+rich = "^13.7.1"
+eclipse-zenoh = "^0.11.0"
+langchain-core = "^0.2.9"
+langchain-community = "^0.2.5"
+voice-pulse = {git = "https://github.com/zatevakhin/voice-pulse.git", rev = "0.2.3"}
+voice-forge = {git = "https://github.com/zatevakhin/voice-forge.git", rev = "0.1.1"}
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.10"
+pytest = "^8.2.2"
+ipykernel = "^6.29.4"
+
+[[tool.poetry.source]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
