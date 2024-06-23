@@ -23,11 +23,7 @@ ASSISTANT_BREAK_ON_TOKENS = [".", ",", "!", "?", ";", ":", "\n"]
 VAD_SILENCE_THRESHOLD = int(os.environ.get("VAD_SILENCE_THRESHOLD", 16))
 VAD_LOG_AUDIO_DIRECTORY = os.environ.get("VAD_LOG_AUDIO_DIRECTORY", "data/vad-records")
 
-OLLAMA_LLM = os.environ.get("OLLAMA_LLM", "llama3:instruct")
-# OLLAMA_LLM = os.environ.get("OLLAMA_LLM", "mistral:7b")
-# OLLAMA_LLM = os.environ.get("OLLAMA_LLM", "tinyllama")
-# OLLAMA_LLM = os.environ.get("OLLAMA_LLM", "starling-lm")
-# OLLAMA_LLM = os.environ.get("OLLAMA_LLM", "samantha-mistral")
+OLLAMA_LLM = os.environ.get("OLLAMA_LLM", "llama3:8b")
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 OLLAMA_LLM_STOP_TOKENS = [f"{ASSISTANT_NAME}:", f"{ASSISTANT_NAME}:".lower()]
 OLLAMA_LLM_TEMPERATURE = int(os.environ.get("OLLAMA_LLM_TEMPERATURE", 0.2))
