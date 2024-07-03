@@ -1,11 +1,14 @@
-from voice_pulse import Listener, Config, VadEngine
+from numpy.typing import NDArray
+from voice_pulse import ListenerStamped, Config, VadEngine
 from voice_pulse.input_sources import CallbackInput
 import numpy as np
 import threading
-from zenoh import Sample
-import zenoh
 import logging
-
+from .event_bus import EventBus
+from reactivex.scheduler import NewThreadScheduler
+import reactivex.operators as ops
+import reactivex as rx
+from functools import partial
 
 from assistant.config import (
     SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
@@ -17,48 +20,43 @@ from assistant.config import (
 logger = logging.getLogger(__name__)
 
 class VadProcess:
-    def __init__(self):
+    def __init__(self, event_bus: EventBus):
+        self.event_bus = event_bus
+
         self.config = Config(
             vad_engine=VadEngine.SILERIO,
             block_duration=SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
             silence_threshold=VAD_SILENCE_THRESHOLD,
         )
         self.stream = CallbackInput(self.config.blocksize)
-        self.thread = threading.Thread(target=self._process_speech)
-        self.running = False
 
-        self.zenoh_session = zenoh.open({
-            "connect": {
-                "endpoints": ["tcp/localhost:7447"],
-            },
-        })
-        self.sub_mumble_sound = self.zenoh_session.declare_subscriber(TOPIC_MUMBLE_SOUND_NEW, self.on_new_sound)
-        self.pub_new_speech = self.zenoh_session.declare_publisher(TOPIC_VAD_SPEECH_NEW)
+        self.vad_subscription = self.event_bus.subscribe(TOPIC_MUMBLE_SOUND_NEW, self.on_sound)
+        self.vad_scheduler = NewThreadScheduler()
+
+        self.vad_observable = rx.from_iterable(ListenerStamped(self.config, self.stream)).pipe(
+            ops.finally_action(self.on_stop),
+            ops.subscribe_on(self.vad_scheduler)
+        )
+
+        on_speech = partial(self.event_bus.publish, TOPIC_VAD_SPEECH_NEW)
+        self.vad_on_speech_subscription = self.vad_observable.subscribe(on_speech)
 
         logger.info("VAD Process ... IDLE")
 
-    def on_new_sound(self, sample: Sample):
-        logger.debug(f"> on_new_sound({type(sample)})")
-        sound = np.frombuffer(sample.payload, dtype=np.float32)
-        sound = np.array(sound) # NOTE: Convert to Writable numpy array.
+    def on_stop(self):
+        pass
+
+    def on_sound(self, sound: NDArray[np.float32]):
+        logger.debug(f"> on_sound({type(sound)})")
         self.stream.receive_chunk(sound)
 
-    def _process_speech(self):
-        for speech in Listener(self.config, self.stream):
-            if not self.running:
-                break
-            self.pub_new_speech.put(speech.tobytes())
-
     def run(self):
-        self.running = True
-        self.thread.start()
         logger.info("VAD Process ... OK")
 
     def stop(self):
         logger.info("VAD Process ... STOPPING")
-        self.running = False
-        self.sub_mumble_sound.undeclare()
-        self.zenoh_session.close()
+        self.vad_subscription.dispose()
+        self.vad_on_speech_subscription.dispose()
         self.stream.receive_chunk(None)
-        self.thread.join()
+
         logger.info("VAD Process ... DEAD")

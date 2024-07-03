@@ -150,3 +150,10 @@ def chop_audio(audio_data: np.ndarray, sample_rate: int, segment_length_ms: int)
                 for i in range(total_segments)]
 
     return segments
+
+
+def enrich_with_silence(audio: np.ndarray, samplerate: int, start_sec: float, end_sec: float) -> np.ndarray:
+    end = np.zeros(int(samplerate * end_sec), dtype=audio.dtype)
+    start = np.zeros(int(samplerate * start_sec), dtype=audio.dtype)
+    return np.concatenate((start, audio, end))
+

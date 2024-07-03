@@ -11,19 +11,23 @@ from assistant.config import (
 from queue import Queue, Empty
 import logging
 import numpy as np
-from zenoh import Sample
 import threading
+from .event_bus import EventBus
+from voice_pulse import SpeechSegment
 
 logger = logging.getLogger(__name__)
 
 class SpeechTranscriberProcess:
-    def __init__(self):
+    def __init__(self, event_bus: EventBus):
+        self.event_bus = event_bus
+
         self.zenoh_session = zenoh.open({
             "connect": {
                 "endpoints": ["tcp/localhost:7447"],
             },
         })
-        self.sub_mumble_sound = self.zenoh_session.declare_subscriber(TOPIC_VAD_SPEECH_NEW, self.on_new_speech)
+
+        self.speech_subscription = self.event_bus.subscribe(TOPIC_VAD_SPEECH_NEW, self.on_speech)
         self.pub_transcription_done = self.zenoh_session.declare_publisher(TOPIC_TRANSCRIPTION_DONE)
 
         self.whisper = WhisperModel(
@@ -50,12 +54,13 @@ class SpeechTranscriberProcess:
         self.thread.join()
         logger.info("Whisper Transcriber ... DEAD")
 
-    def on_new_speech(self, sample: Sample):
-        logger.info(f"> on_new_speech({type(sample)})")
+        if hasattr(self, 'speech_subscription'):
+            self.speech_subscription.dispose()
 
-        speech = np.frombuffer(sample.payload, dtype=np.float64)
-        speech = np.array(speech) # NOTE: Convert to Writable numpy array.
-        self.speech_queue.put(speech)
+
+    def on_speech(self, segment: SpeechSegment):
+        logger.debug(f"> on_speech({type(segment)})")
+        self.speech_queue.put(np.array(segment.speech))
 
     def _speech_transcribe(self):
         while self.running:

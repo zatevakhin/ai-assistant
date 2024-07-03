@@ -7,6 +7,7 @@ from assistant.components import (
     SpeechTranscriberProcess,
     LlmInferenceProcess,
     SpeechSynthesisProcess,
+    EventBus
 )
 
 
@@ -15,9 +16,13 @@ logger = logging.getLogger(__name__)
 
 class VoiceAssistant:
     def __init__(self) -> None:
-        self.mumble = MumbleProcess()
-        self.vad = VadProcess()
-        self.transcriber = SpeechTranscriberProcess()
+        self.event_bus = EventBus()
+
+        self.mumble = MumbleProcess(self.event_bus)
+        self.vad = VadProcess(self.event_bus)
+
+        # TODO: Combine speech input if there is not a big delta.
+        self.transcriber = SpeechTranscriberProcess(self.event_bus)
         self.llm_inference = LlmInferenceProcess()
         self.speech_synthesis = SpeechSynthesisProcess()
 
