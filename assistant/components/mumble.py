@@ -34,6 +34,7 @@ from assistant.config import (
 
 logger = logging.getLogger(__name__)
 
+# TODO: Create a generic interface to receive and play audio. Don't stick to Mumble.
 class MumbleProcess:
     def __init__(self, event_bus: EventBus) -> None:
         self.event_bus = event_bus
