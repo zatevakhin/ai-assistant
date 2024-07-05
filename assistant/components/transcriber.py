@@ -7,13 +7,17 @@ from assistant.config import (
     WHISPER_USE_DEVICE,
     TOPIC_VAD_SPEECH_NEW,
     TOPIC_TRANSCRIPTION_DONE,
+    ZENOH_CONFIG,
 )
-from queue import Queue, Empty
+from queue import Queue
 import logging
 import numpy as np
-import threading
+from numpy.typing import NDArray
 from .event_bus import EventBus
 from voice_pulse import SpeechSegment
+from reactivex.scheduler import NewThreadScheduler
+from .util import queue_as_observable
+from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +25,17 @@ class SpeechTranscriberProcess:
     def __init__(self, event_bus: EventBus):
         self.event_bus = event_bus
 
-        self.zenoh_session = zenoh.open({
-            "connect": {
-                "endpoints": ["tcp/localhost:7447"],
-            },
-        })
+        self.zenoh_session = zenoh.open(ZENOH_CONFIG)
 
+        self.transcriber_scheduler = NewThreadScheduler()
         self.speech_subscription = self.event_bus.subscribe(TOPIC_VAD_SPEECH_NEW, self.on_speech)
+
+        self.speech_queue: Queue[NDArray[np.float32]] = Queue(maxsize=1)
+        self.observable_speech = queue_as_observable(self.speech_queue)
+
+        self.on_transcription = partial(self.event_bus.publish, TOPIC_TRANSCRIPTION_DONE)
+        self.observable_speech.subscribe(self.__speech_transcribe)
+
         self.pub_transcription_done = self.zenoh_session.declare_publisher(TOPIC_TRANSCRIPTION_DONE)
 
         self.whisper = WhisperModel(
@@ -37,46 +45,32 @@ class SpeechTranscriberProcess:
             download_root=WHISPER_MODELS_LOCATION,
         )
 
-        self.speech_queue: Queue[np.ndarray[np.float32]] = Queue(maxsize=1)
-        self.running = False
-        self.thread = threading.Thread(target=self._speech_transcribe)
-
         logger.info("Whisper Transcriber ... IDLE")
 
     def run(self):
-        self.running = True
-        self.thread.start()
         logger.info("Whisper Transcriber ... OK")
 
     def stop(self):
         logger.info("Whisper Transcriber ... STOPPING")
-        self.running = False
-        self.thread.join()
-        logger.info("Whisper Transcriber ... DEAD")
-
         if hasattr(self, 'speech_subscription'):
             self.speech_subscription.dispose()
 
+        logger.info("Whisper Transcriber ... DEAD")
 
     def on_speech(self, segment: SpeechSegment):
         logger.debug(f"> on_speech({type(segment)})")
         self.speech_queue.put(np.array(segment.speech))
 
-    def _speech_transcribe(self):
-        while self.running:
-            try:
-                speech = self.speech_queue.get(timeout=1)
-            except Empty:
-                continue
+    def __speech_transcribe(self, speech: NDArray[np.float32]):
+        logger.debug(f"{type(speech)}, {speech.shape}, {speech.dtype}, writeable: {speech.flags.writeable}")
+        segments, info = self.whisper.transcribe(speech)
+        text = "".join(map(lambda s: s.text, filter(lambda s: s.text, segments))).strip()
 
-            logger.debug(f"{type(speech)}, {speech.shape}, {speech.dtype}, writeable: {speech.flags.writeable}")
-            segments, info = self.whisper.transcribe(speech)
-            text = "".join(map(lambda s: s.text, filter(lambda s: s.text, segments))).strip()
+        transcription = {
+            "text": text,
+            "language": info.language,
+            "probability": info.language_probability
+        }
 
-            self.pub_transcription_done.put({
-                "text": text,
-                "language": info.language,
-                "probability": info.language_probability
-            })
-
-            self.speech_queue.task_done()
+        self.on_transcription(transcription)
+        self.pub_transcription_done.put(transcription)
