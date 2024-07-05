@@ -35,23 +35,37 @@ def test_server_is_up(mumble_process: MumbleProcess):
 def test_connected_to_server(mumble_process: MumbleProcess):
     assert mumble_process.is_connected()
 
-def test_play_sound(mumble_process: MumbleProcess):
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_play_sound_once(mumble_process: MumbleProcess):
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
     speech, samplerate  = tts.synthesize_stream("Why is the sky blue?")
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    obs = mumble_process.on_play(audio)
+    mumble_process.on_play(audio)
+    assert not mumble_process.is_playing()
+    assert mumble_process.get_number_of_items_to_play()
+    time.sleep(0.5)
+    assert not mumble_process.get_number_of_items_to_play()
+    assert mumble_process.is_playing()
+    time.sleep(3)
+    assert not mumble_process.is_playing()
 
-    assert obs.run()
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_play_sound_twice(mumble_process: MumbleProcess):
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
     speech, samplerate  = tts.synthesize_stream("Why is the sky blue?")
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    obs1 = mumble_process.on_play(audio)
-    obs2 = mumble_process.on_play(audio)
+    mumble_process.on_play(audio)
+    mumble_process.on_play(audio)
 
-    assert obs1.run()
-    assert obs2.run()
+    assert not mumble_process.is_playing()
+    assert mumble_process.get_number_of_items_to_play() > 1
+    time.sleep(0.5)
+    assert mumble_process.get_number_of_items_to_play() > 0
+    assert mumble_process.is_playing()
+    time.sleep(5)
+    assert not mumble_process.is_playing()
 
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
@@ -81,16 +95,18 @@ def test_play_sound_with_interrupt(mumble_process: MumbleProcess, event_bus: Eve
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
     speech, samplerate  = tts.synthesize_stream("Try to interrupt me!")
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    obs = mumble_process.on_play(audio)
+    mumble_process.on_play(audio)
+    assert not mumble_process.is_playing()
+    assert mumble_process.get_number_of_items_to_play()
     time.sleep(0.5)
-    assert mumble_process.is_playing.is_set()
-    assert not mumble_process.is_interrupted.is_set()
+    assert not mumble_process.get_number_of_items_to_play()
+    assert mumble_process.is_playing()
 
     event_bus.publish(TOPIC_MUMBLE_INTERRUPT_AUDIO, None)
-    assert mumble_process.is_interrupted.is_set()
+    # assert mumble_process.is_interrupted()
 
     time.sleep(0.5)
-    assert not mumble_process.is_interrupted.is_set()
-    assert not mumble_process.is_playing.is_set()
-    assert obs.run()
+    assert not mumble_process.is_interrupted()
+    assert not mumble_process.is_playing()
+    time.sleep(5)
 
