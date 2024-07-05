@@ -1,5 +1,4 @@
 from faster_whisper import WhisperModel
-import zenoh
 from assistant.config import (
     WHISPER_MODEL_NAME,
     WHISPER_MODELS_LOCATION,
@@ -7,7 +6,6 @@ from assistant.config import (
     WHISPER_USE_DEVICE,
     TOPIC_VAD_SPEECH_NEW,
     TOPIC_TRANSCRIPTION_DONE,
-    ZENOH_CONFIG,
 )
 from queue import Queue
 import logging
@@ -25,8 +23,6 @@ class SpeechTranscriberProcess:
     def __init__(self, event_bus: EventBus):
         self.event_bus = event_bus
 
-        self.zenoh_session = zenoh.open(ZENOH_CONFIG)
-
         self.transcriber_scheduler = NewThreadScheduler()
         self.speech_subscription = self.event_bus.subscribe(TOPIC_VAD_SPEECH_NEW, self.on_speech)
 
@@ -35,8 +31,6 @@ class SpeechTranscriberProcess:
 
         self.on_transcription = partial(self.event_bus.publish, TOPIC_TRANSCRIPTION_DONE)
         self.observable_speech.subscribe(self.__speech_transcribe)
-
-        self.pub_transcription_done = self.zenoh_session.declare_publisher(TOPIC_TRANSCRIPTION_DONE)
 
         self.whisper = WhisperModel(
             WHISPER_MODEL_NAME,
@@ -66,6 +60,7 @@ class SpeechTranscriberProcess:
         segments, info = self.whisper.transcribe(speech)
         text = "".join(map(lambda s: s.text, filter(lambda s: s.text, segments))).strip()
 
+        # TODO: Make specific type instead dict
         transcription = {
             "text": text,
             "language": info.language,
@@ -73,4 +68,3 @@ class SpeechTranscriberProcess:
         }
 
         self.on_transcription(transcription)
-        self.pub_transcription_done.put(transcription)
