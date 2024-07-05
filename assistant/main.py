@@ -20,10 +20,9 @@ class VoiceAssistant:
 
         self.mumble = MumbleProcess(self.event_bus)
         self.vad = VadProcess(self.event_bus)
-
         # TODO: Combine speech input if there is not a big delta.
         self.transcriber = SpeechTranscriberProcess(self.event_bus)
-        self.llm_inference = LlmInferenceProcess()
+        self.llm_inference = LlmInferenceProcess(self.event_bus)
         self.speech_synthesis = SpeechSynthesisProcess()
 
     def run(self) -> None:

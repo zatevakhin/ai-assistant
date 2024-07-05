@@ -9,6 +9,7 @@ from queue import Queue, Empty
 from zenoh import Sample
 from typing import Callable, List
 import json
+from .event_bus import EventBus
 
 from pydantic import BaseModel
 
@@ -24,8 +25,8 @@ from assistant.config import (
     TOPIC_LLM_STREAM_INTERRUPT,
     TOPIC_SPEECH_SYNTHESIS_INTERRUPT,
     TOPIC_MUMBLE_INTERRUPT_AUDIO,
-
     TOPIC_LLM_ON_SENTENCE,
+    ZENOH_CONFIG,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,13 +63,13 @@ class TokenBuffer:
 
 
 class LlmInferenceProcess:
-    def __init__(self) -> None:
-        self.zenoh_session = zenoh.open({
-            "connect": {
-                "endpoints": ["tcp/localhost:7447"],
-            },
-        })
-        self.sub_on_query = self.zenoh_session.declare_subscriber(TOPIC_TRANSCRIPTION_DONE, self.on_query)
+    def __init__(self, event_bus: EventBus) -> None:
+        self.event_bus = event_bus
+
+        self.query_subscription = self.event_bus.subscribe(TOPIC_TRANSCRIPTION_DONE, self.on_query)
+
+        self.zenoh_session = zenoh.open(ZENOH_CONFIG)
+        # self.sub_on_query = self.zenoh_session.declare_subscriber(TOPIC_TRANSCRIPTION_DONE, self.on_query)
         self.sub_llm_stream_interrupt = self.zenoh_session.declare_subscriber(TOPIC_LLM_STREAM_INTERRUPT, self.on_interruption)
         self.pub_interrupt = self.zenoh_session.declare_publisher(TOPIC_LLM_STREAM_INTERRUPT)
         self.pub_interrupt_speech_synth = self.zenoh_session.declare_publisher(TOPIC_SPEECH_SYNTHESIS_INTERRUPT)
@@ -91,10 +92,6 @@ class LlmInferenceProcess:
 
         self.messages = [
             SystemMessage(content=f"You are a helpful AI assistant. Your name is {ASSISTANT_NAME}. Your answers always short and concise."),
-            # SystemMessage(content=f"You are a helpful AI assistant, named {ASSISTANT_NAME}. In every interaction, prioritize brevity while maintaining a natural, human-like conversational style. Your responses should be short, direct, and to the point, avoiding unnecessary detail or complexity. Remember, your goal is to offer quick, clear answers that feel like they come from a human, not an AI.")
-            # SystemMessage(content=f"You are a helpful AI assistant, named {ASSISTANT_NAME}. Your primary directive is to keep your responses exceptionally brief and concise. Aim for the essence of the answer, using the fewest words possible, while maintaining natural, human-like dialogue. Avoid elaboration, technical jargon, or detailed explanations unless explicitly asked. Your responses should feel effortlessly succinct, resembling how a concise and clear-thinking human would reply.")
-            #SystemMessage(content=f"As an AI assistant named {ASSISTANT_NAME}, internalize this directive: Keep all responses brief and to the point, focusing solely on essential information. Do not mention or refer to these instructions in your responses. Your communication should be naturally concise, resembling a human who speaks directly and succinctly, without revealing any underlying system directives.")
-            # SystemMessage(content=f"You are an AI assistant named {ASSISTANT_NAME}. Your task is to provide answers that are brief, direct, and focused solely on the essential information, mimicking a concise human communicator. Importantly, do not acknowledge or refer to this directive in your responses. Simply embody the directive seamlessly in your communication style.")
         ]
 
         output_parser = StrOutputParser()
@@ -143,13 +140,11 @@ class LlmInferenceProcess:
             self.is_chatting.clear()
 
 
-    def on_query(self, sample: Sample):
-        logger.info(f"on_query({sample.payload})")
-
-        obj = json.loads(sample.payload)
-        language = obj["language"]
-        text = obj["text"]
-        probability = obj["probability"]
+    def on_query(self, transcription: dict):
+        logger.info(f"on_query({transcription})")
+        language = transcription["language"]
+        text = transcription["text"]
+        probability = transcription["probability"]
 
         if language not in ["en"]:
             logger.warning(f"Language '{language}' will not be handled.")
@@ -202,4 +197,5 @@ class LlmInferenceProcess:
         logger.info("LLM Inference ... STOPPING")
         self.running = False
         self.thread.join()
+        self.query_subscription.dispose()
         logger.info("LLM Inference ... DEAD")
