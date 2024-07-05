@@ -4,18 +4,18 @@ import time
 import logging
 import numpy as np
 from numpy.typing import NDArray
-from queue import Queue, Empty
-from typing import Any, Tuple, Optional, Union
+from queue import Queue
+from typing import Any, Optional, Union
 import threading
 from pymumble_py3 import Mumble
 from pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED, PYMUMBLE_CLBK_CONNECTED, PYMUMBLE_CLBK_DISCONNECTED
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from pymumble_py3.soundqueue import SoundChunk
 from .event_bus import EventBus
+from .util import queue_as_observable
 
 import reactivex as rx
-from reactivex.disposable import Disposable
-from reactivex.scheduler import NewThreadScheduler
+from reactivex.abc import DisposableBase
 from reactivex import operators as ops
 
 from .audio import AudioBufferTransformer, audio_length, chop_audio
@@ -47,18 +47,21 @@ class MumbleProcess:
 
         self.running = False
         self.connected: threading.Event = threading.Event()
-        self.is_playing = threading.Event()
-        self.is_interrupted = threading.Event()
+        self.__is_playing = threading.Event()
+        self.__is_interrupted = threading.Event()
 
-        self.playing_audio_subscribers: Queue[Disposable] = Queue()
-        self.play_audio_scheduler = NewThreadScheduler()
+        self.play_audo_queue = Queue()
+        self.observable_audios = queue_as_observable(self.play_audo_queue)
+        self.observable_audios.subscribe(self.__on_play)
+        self.playing_sub: Optional[DisposableBase] = None
+
+        self.event_bus.subscribe(TOPIC_MUMBLE_PLAY_AUDIO, self.on_play)
+        self.event_bus.subscribe(TOPIC_MUMBLE_INTERRUPT_AUDIO, self.on_interrupt)
 
         self.zenoh_session = zenoh.open(ZENOH_CONFIG)
-        self.event_bus.subscribe(TOPIC_MUMBLE_PLAY_AUDIO, self.on_play)
-        self.event_bus.subscribe(TOPIC_MUMBLE_INTERRUPT_AUDIO, self.on_interruption)
-
         self.pub_mumble_sound = self.zenoh_session.declare_publisher(TOPIC_MUMBLE_SOUND_NEW)
         self.sub_play_audio = self.zenoh_session.declare_subscriber(TOPIC_MUMBLE_PLAY_AUDIO, self.on_play)
+        self.sub_interrupt = self.zenoh_session.declare_subscriber(TOPIC_MUMBLE_INTERRUPT_AUDIO, self.on_interrupt)
         logger.info("Mumble ... IDLE")
 
     @staticmethod
@@ -70,6 +73,9 @@ class MumbleProcess:
             password=MUMBLE_SERVER_PASSWORD,
         )
 
+    def get_number_of_items_to_play(self) -> int:
+        return self.play_audo_queue.qsize()
+
     def is_alive(self) -> bool:
         return self.client.is_alive()
 
@@ -79,62 +85,62 @@ class MumbleProcess:
     def is_ready(self):
         self.client.is_ready()
 
+    def is_playing(self) -> bool:
+        return self.__is_playing.is_set()
+
+    def is_interrupted(self) -> bool:
+        return self.__is_interrupted.is_set()
+
     def on_connect(self):
         self.connected.set()
 
     def on_disconnect(self):
         self.connected.clear()
 
-    def on_interruption(self, a: Any):
+    def on_interrupt(self, a: Any):
         logger.warning(f"on_interruption({a})")
+        if self.__is_playing.is_set():
+            self.__is_interrupted.set()
 
-        if self.is_playing.is_set() and self.playing_audio_subscribers.qsize() > 0:
-            self.is_interrupted.set()
-            self.playing_audio_subscribers.get().dispose()
+            if self.playing_sub is not None:
+                self.playing_sub.dispose()
 
-    def on_play_interrupted(self):
-        if self.is_interrupted.is_set():
-            self.is_interrupted.wait()
+    def __on_interrupted(self):
+        if self.__is_interrupted.is_set():
+            while not self.play_audo_queue.empty():
+                self.play_audo_queue.get()
+                self.play_audo_queue.task_done()
 
-            if self.playing_audio_subscribers.qsize() > 0:
-                self.playing_audio_subscribers.get().dispose()
+            self.__is_interrupted.clear()
+            self.__is_playing.clear()
 
-            self.is_interrupted.clear()
-            self.is_playing.clear()
+    def __on_play_complete(self):
+        self.__is_playing.clear()
 
-    def on_play_complete(self):
-        self.is_playing.wait()
-
-        if self.playing_audio_subscribers.qsize() > 0:
-            self.playing_audio_subscribers.get().dispose()
-
-        self.is_playing.clear()
-
-    def on_play(self, audio: Union[NDArray[np.int16], Sample]) -> rx.Observable:
+    def on_play(self, audio: Union[NDArray[np.int16], Sample]):
         logger.info(f"> on_play({type(audio)})")
-
         if isinstance(audio, Sample):
             audio = np.frombuffer(audio.payload, dtype=np.int16)
 
-        # BUG: Can play multiple audios if on_play called multiple times.
-        #      This happens on audio generation when sentence is split into pieces.
-        observable_audio = rx.zip(rx.interval(0.020), rx.from_iterable(chop_audio(audio, PYMUMBLE_SAMPLERATE, 20))).pipe(
+        self.play_audo_queue.put(audio)
+
+    def __on_play(self, audio: NDArray[np.int16]):
+        self.__is_playing.set()
+
+        self.playing_sub = rx.zip(rx.interval(0.020), rx.from_iterable(chop_audio(audio, PYMUMBLE_SAMPLERATE, 20))).pipe(
             ops.map(lambda x: x[1].tobytes()),
-            ops.finally_action(self.on_play_interrupted),
-            ops.subscribe_on(self.play_audio_scheduler)
-        )
+            ops.do_action(self.client.sound_output.add_sound),
+            ops.finally_action(self.__on_interrupted),
+        ).subscribe(on_completed=self.__on_play_complete)
 
-        subs = observable_audio.subscribe(self.on_play_chunk, on_error=lambda x: print(f"err: {x}"), on_completed=self.on_play_complete)
-        self.playing_audio_subscribers.put(subs)
-        #self.playing_audio_length_milis = audio_length(audio, PYMUMBLE_SAMPLERATE)
+        # NOTE: Block thread until playing of audio is done.
+        # TODO: Split sleep in 20ms chunks and add interrupt condition
+        time.sleep(audio_length(audio, PYMUMBLE_SAMPLERATE) / 1000.0)
 
-        self.is_playing.set()
-        return observable_audio
+        # NOTE: Object maybe disposed by interrupt.
+        # self.playing_sub.dispose()
 
-    def on_play_chunk(self, audio_chunk: NDArray[np.int16]):
-        self.client.sound_output.add_sound(audio_chunk)
-
-    def on_sound(self, sound: np.ndarray[np.float32]):
+    def on_sound(self, sound: NDArray[np.float32]):
         logger.debug(f"{type(sound)}, {sound.flags.writeable}")
         self.event_bus.publish(TOPIC_MUMBLE_SOUND_NEW, sound)
 
@@ -154,7 +160,6 @@ class MumbleProcess:
         self.client.set_receive_sound(True)
         self.client.start()
         self.client.is_ready()
-        time.sleep(3)
         logger.info("Mumble ... OK")
 
     def stop(self):
@@ -163,12 +168,7 @@ class MumbleProcess:
         self.client.stop()
         self.pub_mumble_sound.undeclare()
         self.sub_play_audio.undeclare()
+        self.sub_interrupt.undeclare()
         self.zenoh_session.close()
-        self.is_playing.set()
+        self.__is_playing.set()
         logger.info("Mumble ... DEAD")
-
-def main():
-    pass
-
-if __name__ == "__main__":
-    main()
