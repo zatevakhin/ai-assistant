@@ -21,8 +21,10 @@ def llm(event_bus: EventBus):
     yield process
     process.stop()
 
+# TODO: Add test to ensure that LLM service is available.
+# TODO: Add test to ensure that specific LLM model is available.
 
-def test_is_speech(llm: LlmInferenceProcess, event_bus: EventBus):
+def test_is_inference_working(llm: LlmInferenceProcess, event_bus: EventBus):
     answer = Queue()
     event_bus.subscribe(TOPIC_LLM_ON_SENTENCE, answer.put)
 
