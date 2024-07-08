@@ -40,12 +40,3 @@ TOPIC_LLM_TOKEN_NEW = "llm/token/new"
 TOPIC_LLM_STREAM_DONE = "llm/stream/done"
 TOPIC_LLM_ON_SENTENCE = "llm/on/sentence"
 TOPIC_LLM_STREAM_INTERRUPT = "llm/stream/interrupt"
-
-ZENOH_CONFIG = {
-    "connect": {
-        "endpoints": ["tcp/localhost:7447"],
-    },
-    "listen": {
-        "endpoints": ["tcp/localhost:7447"],
-    },
-}

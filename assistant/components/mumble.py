@@ -1,11 +1,9 @@
-import zenoh
-from zenoh import Sample
 import time
 import logging
 import numpy as np
 from numpy.typing import NDArray
 from queue import Queue
-from typing import Any, Optional, Union
+from typing import Any, Optional
 import threading
 from pymumble_py3 import Mumble
 from pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED, PYMUMBLE_CLBK_CONNECTED, PYMUMBLE_CLBK_DISCONNECTED
@@ -29,7 +27,6 @@ from assistant.config import (
     TOPIC_MUMBLE_SOUND_NEW,
     TOPIC_MUMBLE_PLAY_AUDIO,
     TOPIC_MUMBLE_INTERRUPT_AUDIO,
-    ZENOH_CONFIG
 )
 
 logger = logging.getLogger(__name__)
@@ -56,12 +53,8 @@ class MumbleProcess:
         self.playing_sub: Optional[DisposableBase] = None
 
         self.event_bus.subscribe(TOPIC_MUMBLE_PLAY_AUDIO, self.on_play)
+        # NOTE: Not implemented from other side. See interruption manager TODO.
         self.event_bus.subscribe(TOPIC_MUMBLE_INTERRUPT_AUDIO, self.on_interrupt)
-
-        self.zenoh_session = zenoh.open(ZENOH_CONFIG)
-        self.pub_mumble_sound = self.zenoh_session.declare_publisher(TOPIC_MUMBLE_SOUND_NEW)
-        self.sub_play_audio = self.zenoh_session.declare_subscriber(TOPIC_MUMBLE_PLAY_AUDIO, self.on_play)
-        self.sub_interrupt = self.zenoh_session.declare_subscriber(TOPIC_MUMBLE_INTERRUPT_AUDIO, self.on_interrupt)
         logger.info("Mumble ... IDLE")
 
     @staticmethod
@@ -117,11 +110,8 @@ class MumbleProcess:
     def __on_play_complete(self):
         self.__is_playing.clear()
 
-    def on_play(self, audio: Union[NDArray[np.int16], Sample]):
+    def on_play(self, audio: NDArray[np.int16]):
         logger.info(f"> on_play({type(audio)})")
-        if isinstance(audio, Sample):
-            audio = np.frombuffer(audio.payload, dtype=np.int16)
-
         self.play_audo_queue.put(audio)
 
     def __on_play(self, audio: NDArray[np.int16]):
@@ -166,9 +156,5 @@ class MumbleProcess:
         logger.info("Mumble ... STOPPING")
         self.running = False
         self.client.stop()
-        self.pub_mumble_sound.undeclare()
-        self.sub_play_audio.undeclare()
-        self.sub_interrupt.undeclare()
-        self.zenoh_session.close()
         self.__is_playing.set()
         logger.info("Mumble ... DEAD")

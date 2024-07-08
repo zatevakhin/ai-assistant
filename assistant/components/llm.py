@@ -4,10 +4,8 @@ from langchain_community.chat_models import ChatOllama
 
 import threading
 import logging
-import zenoh
 from queue import Queue
-from zenoh import Sample
-from typing import List
+from typing import List, Any
 from .event_bus import EventBus
 
 from pydantic import BaseModel
@@ -19,13 +17,8 @@ from assistant.config import (
     OLLAMA_LLM,
     OLLAMA_BASE_URL,
     TOPIC_TRANSCRIPTION_DONE,
-    TOPIC_LLM_TOKEN_NEW,
-    TOPIC_LLM_STREAM_DONE,
     TOPIC_LLM_STREAM_INTERRUPT,
-    TOPIC_SPEECH_SYNTHESIS_INTERRUPT,
-    TOPIC_MUMBLE_INTERRUPT_AUDIO,
     TOPIC_LLM_ON_SENTENCE,
-    ZENOH_CONFIG,
 )
 from .util import queue_as_observable
 import reactivex as rx
@@ -50,29 +43,17 @@ class LlmInferenceProcess:
         self.event_bus = event_bus
 
         self.query_subscription = self.event_bus.subscribe(TOPIC_TRANSCRIPTION_DONE, self.on_query)
-        self.interruption_subscription = self.event_bus.subscribe(TOPIC_LLM_STREAM_INTERRUPT, lambda: self.on_interruption(None))
+        self.interruption_subscription = self.event_bus.subscribe(TOPIC_LLM_STREAM_INTERRUPT, lambda _: self.on_interruption(None))
 
         self.queries: Queue[str] = Queue()
         self.observable_queries = queue_as_observable(self.queries)
         self.observable_queries.subscribe(self.__query_handler)
         self.publish_sentence = partial(self.event_bus.publish, TOPIC_LLM_ON_SENTENCE)
 
-        self.query_response_tokens: Queue[StreamToken] = Queue()
-
-        self.zenoh_session = zenoh.open(ZENOH_CONFIG)
-        self.sub_llm_stream_interrupt = self.zenoh_session.declare_subscriber(TOPIC_LLM_STREAM_INTERRUPT, self.on_interruption)
-        self.pub_interrupt = self.zenoh_session.declare_publisher(TOPIC_LLM_STREAM_INTERRUPT)
-        self.pub_interrupt_speech_synth = self.zenoh_session.declare_publisher(TOPIC_SPEECH_SYNTHESIS_INTERRUPT)
-        self.pub_interrupt_speech_playback = self.zenoh_session.declare_publisher(TOPIC_MUMBLE_INTERRUPT_AUDIO)
-        # self.pub_llm_stream_done = self.zenoh_session.declare_publisher(TOPIC_LLM_STREAM_DONE)
-        self.pub_on_sentence = self.zenoh_session.declare_publisher(TOPIC_LLM_ON_SENTENCE)
-
-
         self.llm = self.create_llm(OLLAMA_LLM)
         self.running = False
         self.interrupt_inference = threading.Event()
-        self.is_chatting = threading.Event()
-
+        self.chatting = threading.Lock()
 
         self.history = [
             SystemMessage(content=f"You are a helpful AI assistant. Your name is {ASSISTANT_NAME}. Your answers always short and concise."),
@@ -93,41 +74,34 @@ class LlmInferenceProcess:
         )
 
     def __query_handler(self, query: str):
-        self.is_chatting.set()
+        with self.chatting:
+            self.history.append(HumanMessage(content=query))
+            query_response = QueryResponse(tokens=[], interrupted=False)
 
-        self.history.append(HumanMessage(content=query))
-        query_response = QueryResponse(tokens=[], interrupted=False)
-
-        BREAK_TOKENS = ('.', ',', '!', '?', ";", "\n")
-        ret = rx.from_iterable(self.chain.stream(self.history)).pipe(
-            ops.map(lambda t: StreamToken(token=t, done=bool(t == ""))),
-            ops.do_action(query_response.tokens.append),
-            ops.publish(lambda shared: shared.pipe(
-                ops.buffer_when(lambda: shared.pipe(
-                    ops.filter(lambda t: not t.done and t.token[-1] in BREAK_TOKENS),
-                    ops.take(1)
-                ))
-            )),
-            ops.take_while(lambda _: not self.interrupt_inference.is_set()),
-            ops.do_action(self.__on_new_buffer),
-            ops.take_while(lambda t: len(t) and not t[-1].done),
-            ops.finally_action(lambda: self.__on_done(query_response)),
-        ).run()
-
-        self.is_chatting.clear()
+            BREAK_TOKENS = ('.', ',', '!', '?', ";", "\n")
+            rx.from_iterable(self.chain.stream(self.history)).pipe(
+                ops.map(lambda t: StreamToken(token=t, done=bool(t == ""))),
+                ops.do_action(query_response.tokens.append),
+                ops.publish(lambda shared: shared.pipe(
+                    ops.buffer_when(lambda: shared.pipe(
+                        ops.filter(lambda t: not t.done and t.token[-1] in BREAK_TOKENS),
+                        ops.take(1)
+                    ))
+                )),
+                ops.take_while(lambda _: not self.interrupt_inference.is_set()),
+                ops.do_action(self.__on_new_buffer),
+                ops.take_while(lambda t: len(t) and not t[-1].done),
+                ops.finally_action(lambda: self.__on_done(query_response)),
+            ).run()
 
     def __on_new_buffer(self, buffer: List[StreamToken]):
         sentence = "".join(map(lambda t: t.token, buffer))
         self.publish_sentence(sentence)
-        self.pub_on_sentence.put(sentence.encode())
 
     def __on_done(self, response: QueryResponse):
         response.interrupted = self.interrupt_inference.is_set()
 
         full_response = "".join(map(lambda t: t.token, response.tokens))
-        print(f"done, interrupted = {response.interrupted}")
-        print(full_response)
-
         self.history.append(AIMessage(content=full_response))
 
         if response.interrupted:
@@ -148,20 +122,11 @@ class LlmInferenceProcess:
             logger.warning(f"Probability that this is '{language}' language is below '{min_probability}'.")
             return
 
-        if self.is_chatting.is_set():
-            logger.warning("Interrupting because LLM inference is running.")
-            self.history.append(HumanMessage(content=text))
-            self.pub_interrupt.put({})
-            return
-
         self.queries.put(text)
 
-    def on_interruption(self, sample: Sample):
+    def on_interruption(self, sample: Any):
         logger.warning(f"Interrupting: {sample}")
-
         self.interrupt_inference.set()
-        self.pub_interrupt_speech_synth.put({"by": __name__})
-        self.pub_interrupt_speech_playback.put({"by": __name__})
 
     def run(self):
         self.running = True
@@ -171,4 +136,5 @@ class LlmInferenceProcess:
         logger.info("LLM Inference ... STOPPING")
         self.running = False
         self.query_subscription.dispose()
+        self.interruption_subscription.dispose()
         logger.info("LLM Inference ... DEAD")

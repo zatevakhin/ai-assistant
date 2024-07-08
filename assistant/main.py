@@ -22,8 +22,9 @@ class VoiceAssistant:
         self.vad = VadProcess(self.event_bus)
         # TODO: Combine speech input if there is not a big delta.
         self.transcriber = SpeechTranscriberProcess(self.event_bus)
+        # TODO: Consider to add interrupt manager process, that will evaluate if interruption needed or not.
         self.llm_inference = LlmInferenceProcess(self.event_bus)
-        self.speech_synthesis = SpeechSynthesisProcess()
+        self.speech_synthesis = SpeechSynthesisProcess(self.event_bus)
 
     def run(self) -> None:
         self.mumble.run()
