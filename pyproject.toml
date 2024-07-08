@@ -15,7 +15,6 @@ resampy = "^0.4.3"
 faster-whisper = "^1.0.2"
 rich = "^13.7.1"
 reactivex = "^4.0.4"
-eclipse-zenoh = "^0.11.0"
 langchain-core = "^0.2.9"
 langchain-community = "^0.2.5"
 voice-pulse = {git = "https://github.com/zatevakhin/voice-pulse.git", rev = "v0.3.0"}

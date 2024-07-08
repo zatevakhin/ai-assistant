@@ -23,6 +23,7 @@ def llm(event_bus: EventBus):
 
 # TODO: Add test to ensure that LLM service is available.
 # TODO: Add test to ensure that specific LLM model is available.
+# TODO: Add history reset and add test for it.
 
 def test_is_inference_working(llm: LlmInferenceProcess, event_bus: EventBus):
     answer = Queue()
@@ -60,3 +61,19 @@ def test_is_inference_working(llm: LlmInferenceProcess, event_bus: EventBus):
     while not answer.empty():
         answer.get()
         answer.task_done()
+
+def test_interruption(llm: LlmInferenceProcess, event_bus: EventBus):
+    event_bus.publish(TOPIC_TRANSCRIPTION_DONE, {
+        "text": "Hello!",
+        "language": "en",
+        "probability": 1
+    })
+
+    event_bus.publish(TOPIC_TRANSCRIPTION_DONE, {
+        "text": "Why is the sky blue?",
+        "language": "en",
+        "probability": 1
+    })
+
+    sleep(10)
+    assert False # NOTE: Tests is broken for now.
