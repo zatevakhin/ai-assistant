@@ -27,16 +27,3 @@ OLLAMA_LLM = os.environ.get("OLLAMA_LLM", "llama3:8b")
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 OLLAMA_LLM_STOP_TOKENS = [f"{ASSISTANT_NAME}:", f"{ASSISTANT_NAME}:".lower()]
 OLLAMA_LLM_TEMPERATURE = int(os.environ.get("OLLAMA_LLM_TEMPERATURE", 0.2))
-
-TOPIC_MUMBLE_SOUND_NEW = "mumble/got/audio"
-TOPIC_MUMBLE_PLAY_AUDIO = "mumble/play/audio"
-TOPIC_MUMBLE_INTERRUPT_AUDIO = "mumble/interrupt/audio"
-
-TOPIC_SPEECH_SYNTHESIS_INTERRUPT = "speech/synthesis/interrupt"
-
-TOPIC_VAD_SPEECH_NEW = "vad/speech/new"
-TOPIC_TRANSCRIPTION_DONE = "transcription/done"
-TOPIC_LLM_TOKEN_NEW = "llm/token/new"
-TOPIC_LLM_STREAM_DONE = "llm/stream/done"
-TOPIC_LLM_ON_SENTENCE = "llm/on/sentence"
-TOPIC_LLM_STREAM_INTERRUPT = "llm/stream/interrupt"

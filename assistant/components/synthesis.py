@@ -7,15 +7,13 @@ from typing import Any
 
 from assistant.config import (
     PIPER_TTS_MODEL,
-    PIPER_MODELS_LOCATION,
-    TOPIC_LLM_ON_SENTENCE,
-    TOPIC_MUMBLE_PLAY_AUDIO,
+    PIPER_MODELS_LOCATION
 )
 
 from voice_forge import PiperTts
 from .util import queue_as_observable
 import numpy as np
-from .event_bus import EventBus
+from .event_bus import EventBus, EventType
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +21,7 @@ logger = logging.getLogger(__name__)
 class SpeechSynthesisProcess:
     def __init__(self, event_bus: EventBus) -> None:
         self.event_bus = event_bus
-        self.sentence_subscription = self.event_bus.subscribe(TOPIC_LLM_ON_SENTENCE, self.on_sentence)
-        # self.interrupt_subscription = self.event_bus.subscribe(TOPIC_SPEECH_SYNTHESIS_INTERRUPT, self.on_interruption)
+        self.sentence_subscription = self.event_bus.subscribe(EventType.LLM_NEW_SENTENCE, self.on_sentence)
 
         self.sentences_queue: Queue[str] = Queue()
         self.observable_sentences = queue_as_observable(self.sentences_queue)
@@ -51,7 +48,7 @@ class SpeechSynthesisProcess:
         speech, samplerate = self.tts.synthesize_stream(sentence)
         speech_resampled = self.resample_speec_for_mumble(speech, samplerate)
 
-        self.event_bus.publish(TOPIC_MUMBLE_PLAY_AUDIO, speech_resampled)
+        self.event_bus.publish(EventType.MUMBLE_PLAY_AUDIO, speech_resampled)
 
         # Always clear state, after synth finished or interrupted.
         self.is_synthesise.clear()
