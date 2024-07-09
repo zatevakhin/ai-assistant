@@ -2,9 +2,8 @@ from numpy.typing import NDArray
 from voice_pulse import ListenerStamped, Config, VadEngine
 from voice_pulse.input_sources import CallbackInput
 import numpy as np
-import threading
 import logging
-from .event_bus import EventBus
+from .event_bus import EventBus, EventType
 from reactivex.scheduler import NewThreadScheduler
 import reactivex.operators as ops
 import reactivex as rx
@@ -13,8 +12,6 @@ from functools import partial
 from assistant.config import (
     SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
     VAD_SILENCE_THRESHOLD,
-    TOPIC_MUMBLE_SOUND_NEW,
-    TOPIC_VAD_SPEECH_NEW
 )
 
 logger = logging.getLogger(__name__)
@@ -30,7 +27,7 @@ class VadProcess:
         )
         self.stream = CallbackInput(self.config.blocksize)
 
-        self.vad_subscription = self.event_bus.subscribe(TOPIC_MUMBLE_SOUND_NEW, self.on_sound)
+        self.vad_subscription = self.event_bus.subscribe(EventType.MUMBLE_NEW_AUDIO, self.on_sound)
         self.vad_scheduler = NewThreadScheduler()
 
         self.vad_observable = rx.from_iterable(ListenerStamped(self.config, self.stream)).pipe(
@@ -38,7 +35,7 @@ class VadProcess:
             ops.subscribe_on(self.vad_scheduler)
         )
 
-        on_speech = partial(self.event_bus.publish, TOPIC_VAD_SPEECH_NEW)
+        on_speech = partial(self.event_bus.publish, EventType.VAD_NEW_SPEECH)
         self.vad_on_speech_subscription = self.vad_observable.subscribe(on_speech)
 
         logger.info("VAD Process ... IDLE")

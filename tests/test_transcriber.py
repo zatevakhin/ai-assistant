@@ -7,8 +7,8 @@ import re
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from assistant.components import SpeechTranscriberProcess, EventBus
-from assistant.config import PIPER_TTS_MODEL, PIPER_MODELS_LOCATION, TOPIC_TRANSCRIPTION_DONE, TOPIC_VAD_SPEECH_NEW
+from assistant.components import SpeechTranscriberProcess, EventBus, EventType
+from assistant.config import PIPER_TTS_MODEL, PIPER_MODELS_LOCATION
 from voice_forge import PiperTts
 from voice_pulse import SpeechSegment
 from assistant.components.audio import enrich_with_silence
@@ -41,8 +41,8 @@ def test_transcribe_speech(transcriber: SpeechTranscriberProcess, event_bus: Eve
     transcriptions_queue = Queue()
 
     seg = SpeechSegment(speech=audio, timestamp=datetime.now())
-    sub = event_bus.subscribe(TOPIC_TRANSCRIPTION_DONE, transcriptions_queue.put)
-    event_bus.publish(TOPIC_VAD_SPEECH_NEW, seg)
+    sub = event_bus.subscribe(EventType.TRANSCRIPTION_DONE, transcriptions_queue.put)
+    event_bus.publish(EventType.VAD_NEW_SPEECH, seg)
 
     transcription = transcriptions_queue.get()
 

@@ -1,5 +1,5 @@
 from queue import Queue
-from time import sleep, time
+from time import sleep
 from numpy.typing import NDArray
 import pytest
 import resampy
@@ -7,9 +7,8 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from assistant.components import VadProcess, EventBus
-from assistant.config import PIPER_TTS_MODEL, PIPER_MODELS_LOCATION, TOPIC_MUMBLE_SOUND_NEW, TOPIC_VAD_SPEECH_NEW, SPEECH_PIPELINE_BUFFER_SIZE_MILIS
-from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
+from assistant.components import VadProcess, EventBus, EventType
+from assistant.config import PIPER_TTS_MODEL, PIPER_MODELS_LOCATION, SPEECH_PIPELINE_BUFFER_SIZE_MILIS
 from voice_forge import PiperTts
 from assistant.components.audio import chop_audio, enrich_with_silence
 import numpy as np
@@ -40,11 +39,11 @@ def test_is_speech(vad_process: VadProcess, event_bus: EventBus):
     def on_speech(seg: NDArray[np.float32]):
         speech_queue.put(seg)
 
-    subs = event_bus.subscribe(TOPIC_VAD_SPEECH_NEW, on_speech)
+    subs = event_bus.subscribe(EventType.VAD_NEW_SPEECH, on_speech)
 
     for seg in chop_audio(audio, 16000, SPEECH_PIPELINE_BUFFER_SIZE_MILIS):
-        event_bus.publish(TOPIC_MUMBLE_SOUND_NEW, seg)
-        sleep(0.032)
+        event_bus.publish(EventType.MUMBLE_NEW_AUDIO, seg)
+        sleep(SPEECH_PIPELINE_BUFFER_SIZE_MILIS / 1000.0)
 
     sleep(3)
 

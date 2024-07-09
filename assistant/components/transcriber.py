@@ -4,14 +4,12 @@ from assistant.config import (
     WHISPER_MODELS_LOCATION,
     WHISPER_USE_COMPUTE_TYPE,
     WHISPER_USE_DEVICE,
-    TOPIC_VAD_SPEECH_NEW,
-    TOPIC_TRANSCRIPTION_DONE,
 )
 from queue import Queue
 import logging
 import numpy as np
 from numpy.typing import NDArray
-from .event_bus import EventBus
+from .event_bus import EventBus, EventType
 from voice_pulse import SpeechSegment
 from reactivex.scheduler import NewThreadScheduler
 from .util import queue_as_observable
@@ -24,12 +22,12 @@ class SpeechTranscriberProcess:
         self.event_bus = event_bus
 
         self.transcriber_scheduler = NewThreadScheduler()
-        self.speech_subscription = self.event_bus.subscribe(TOPIC_VAD_SPEECH_NEW, self.on_speech)
+        self.speech_subscription = self.event_bus.subscribe(EventType.VAD_NEW_SPEECH, self.on_speech)
 
         self.speech_queue: Queue[NDArray[np.float32]] = Queue(maxsize=1)
         self.observable_speech = queue_as_observable(self.speech_queue)
 
-        self.on_transcription = partial(self.event_bus.publish, TOPIC_TRANSCRIPTION_DONE)
+        self.on_transcription = partial(self.event_bus.publish, EventType.TRANSCRIPTION_DONE)
         self.observable_speech.subscribe(self.__speech_transcribe)
 
         self.whisper = WhisperModel(

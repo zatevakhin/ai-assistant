@@ -6,7 +6,7 @@ import threading
 import logging
 from queue import Queue
 from typing import List, Any
-from .event_bus import EventBus
+from .event_bus import EventBus, EventType
 
 from pydantic import BaseModel
 
@@ -16,9 +16,6 @@ from assistant.config import (
     OLLAMA_LLM_TEMPERATURE,
     OLLAMA_LLM,
     OLLAMA_BASE_URL,
-    TOPIC_TRANSCRIPTION_DONE,
-    TOPIC_LLM_STREAM_INTERRUPT,
-    TOPIC_LLM_ON_SENTENCE,
 )
 from .util import queue_as_observable
 import reactivex as rx
@@ -42,13 +39,13 @@ class LlmInferenceProcess:
     def __init__(self, event_bus: EventBus) -> None:
         self.event_bus = event_bus
 
-        self.query_subscription = self.event_bus.subscribe(TOPIC_TRANSCRIPTION_DONE, self.on_query)
-        self.interruption_subscription = self.event_bus.subscribe(TOPIC_LLM_STREAM_INTERRUPT, lambda _: self.on_interruption(None))
+        self.query_subscription = self.event_bus.subscribe(EventType.TRANSCRIPTION_DONE, self.on_query)
+        self.interruption_subscription = self.event_bus.subscribe(EventType.LLM_STREAM_INTERRUPT, lambda _: self.on_interruption(None))
 
         self.queries: Queue[str] = Queue()
         self.observable_queries = queue_as_observable(self.queries)
         self.observable_queries.subscribe(self.__query_handler)
-        self.publish_sentence = partial(self.event_bus.publish, TOPIC_LLM_ON_SENTENCE)
+        self.publish_sentence = partial(self.event_bus.publish, EventType.LLM_NEW_SENTENCE)
 
         self.llm = self.create_llm(OLLAMA_LLM)
         self.running = False

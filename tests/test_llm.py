@@ -5,8 +5,8 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from assistant.components import LlmInferenceProcess, EventBus
-from assistant.config import TOPIC_TRANSCRIPTION_DONE, TOPIC_LLM_ON_SENTENCE
+from assistant.components import LlmInferenceProcess, EventBus, EventType
+
 
 @pytest.fixture(scope="module")
 def event_bus():
@@ -27,9 +27,9 @@ def llm(event_bus: EventBus):
 
 def test_is_inference_working(llm: LlmInferenceProcess, event_bus: EventBus):
     answer = Queue()
-    event_bus.subscribe(TOPIC_LLM_ON_SENTENCE, answer.put)
+    event_bus.subscribe(EventType.LLM_NEW_SENTENCE, answer.put)
 
-    event_bus.publish(TOPIC_TRANSCRIPTION_DONE, {
+    event_bus.publish(EventType.TRANSCRIPTION_DONE, {
         "text": "Hello!",
         "language": "en",
         "probability": 1
@@ -45,9 +45,9 @@ def test_is_inference_working(llm: LlmInferenceProcess, event_bus: EventBus):
         answer.task_done()
 
     answer = Queue()
-    event_bus.subscribe(TOPIC_LLM_ON_SENTENCE, answer.put)
+    event_bus.subscribe(EventType.LLM_NEW_SENTENCE, answer.put)
 
-    event_bus.publish(TOPIC_TRANSCRIPTION_DONE, {
+    event_bus.publish(EventType.TRANSCRIPTION_DONE, {
         "text": "Why is the sky blue?",
         "language": "en",
         "probability": 1
@@ -63,13 +63,13 @@ def test_is_inference_working(llm: LlmInferenceProcess, event_bus: EventBus):
         answer.task_done()
 
 def test_interruption(llm: LlmInferenceProcess, event_bus: EventBus):
-    event_bus.publish(TOPIC_TRANSCRIPTION_DONE, {
+    event_bus.publish(EventType.TRANSCRIPTION_DONE, {
         "text": "Hello!",
         "language": "en",
         "probability": 1
     })
 
-    event_bus.publish(TOPIC_TRANSCRIPTION_DONE, {
+    event_bus.publish(EventType.TRANSCRIPTION_DONE, {
         "text": "Why is the sky blue?",
         "language": "en",
         "probability": 1

@@ -1,5 +1,4 @@
 import warnings
-import threading
 import pytest
 import numpy as np
 import time
@@ -8,8 +7,8 @@ from queue import Queue
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from assistant.components import MumbleProcess, EventBus
-from assistant.config import PIPER_TTS_MODEL, PIPER_MODELS_LOCATION, TOPIC_MUMBLE_SOUND_NEW, TOPIC_MUMBLE_INTERRUPT_AUDIO
+from assistant.components import MumbleProcess, EventBus, EventType
+from assistant.config import PIPER_TTS_MODEL, PIPER_MODELS_LOCATION
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from voice_forge import PiperTts
 import pymumble_py3
@@ -79,7 +78,7 @@ def test_receive_sound(event_bus: EventBus):
     def on_sound(data):
         sound_chunks.put(data)
 
-    event_bus.subscribe(TOPIC_MUMBLE_SOUND_NEW, on_sound)
+    event_bus.subscribe(EventType.MUMBLE_NEW_AUDIO, on_sound)
 
     client = pymumble_py3.Mumble(host="localhost", user="pytest")
     client.start()
@@ -102,8 +101,7 @@ def test_play_sound_with_interrupt(mumble_process: MumbleProcess, event_bus: Eve
     assert not mumble_process.get_number_of_items_to_play()
     assert mumble_process.is_playing()
 
-    event_bus.publish(TOPIC_MUMBLE_INTERRUPT_AUDIO, None)
-    # assert mumble_process.is_interrupted()
+    event_bus.publish(EventType.MUMBLE_INTERRUPT_AUDIO, None)
 
     time.sleep(0.5)
     assert not mumble_process.is_interrupted()

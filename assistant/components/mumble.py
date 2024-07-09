@@ -9,7 +9,7 @@ from pymumble_py3 import Mumble
 from pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED, PYMUMBLE_CLBK_CONNECTED, PYMUMBLE_CLBK_DISCONNECTED
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from pymumble_py3.soundqueue import SoundChunk
-from .event_bus import EventBus
+from .event_bus import EventBus, EventType
 from .util import queue_as_observable
 
 import reactivex as rx
@@ -24,9 +24,6 @@ from assistant.config import (
     MUMBLE_SERVER_PORT,
     SPEECH_PIPELINE_SAMPLERATE,
     SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
-    TOPIC_MUMBLE_SOUND_NEW,
-    TOPIC_MUMBLE_PLAY_AUDIO,
-    TOPIC_MUMBLE_INTERRUPT_AUDIO,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,9 +49,9 @@ class MumbleProcess:
         self.observable_audios.subscribe(self.__on_play)
         self.playing_sub: Optional[DisposableBase] = None
 
-        self.event_bus.subscribe(TOPIC_MUMBLE_PLAY_AUDIO, self.on_play)
+        self.event_bus.subscribe(EventType.MUMBLE_PLAY_AUDIO, self.on_play)
         # NOTE: Not implemented from other side. See interruption manager TODO.
-        self.event_bus.subscribe(TOPIC_MUMBLE_INTERRUPT_AUDIO, self.on_interrupt)
+        self.event_bus.subscribe(EventType.MUMBLE_INTERRUPT_AUDIO, self.on_interrupt)
         logger.info("Mumble ... IDLE")
 
     @staticmethod
@@ -132,7 +129,7 @@ class MumbleProcess:
 
     def on_sound(self, sound: NDArray[np.float32]):
         logger.debug(f"{type(sound)}, {sound.flags.writeable}")
-        self.event_bus.publish(TOPIC_MUMBLE_SOUND_NEW, sound)
+        self.event_bus.publish(EventType.MUMBLE_NEW_AUDIO, sound)
 
     def _sound_received_callback(self, user: str, soundchunk: SoundChunk):
         if user in self.ignored_users:
