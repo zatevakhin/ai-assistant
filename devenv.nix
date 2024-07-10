@@ -4,9 +4,19 @@
 
   env.PYTHONPATH = ".";
   env.OLLAMA_BASE_URL = "http://galactica.lan:11434";
+  # FIX: NixOS User problems
+  env.LD_LIBRARY_PATH = "/run/opengl-driver/lib:$LD_LIBRARY_PATH";
 
   # https://devenv.sh/packages/
-  packages = [ pkgs.git pkgs.zsh pkgs.libopus ];
+  packages = [
+    pkgs.git
+    pkgs.zsh
+    pkgs.libopus
+    pkgs.gcc-unwrapped.lib
+    pkgs.cudaPackages.cudatoolkit
+    pkgs.cudaPackages.libcublas
+    pkgs.cudaPackages.cudnn
+  ];
 
   # https://devenv.sh/scripts/
   # scripts.hello.exec = "";
