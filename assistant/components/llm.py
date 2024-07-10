@@ -17,7 +17,7 @@ from assistant.config import (
     OLLAMA_LLM,
     OLLAMA_BASE_URL,
 )
-from .util import queue_as_observable
+from .util import queue_as_observable, controlled_area
 import reactivex as rx
 from reactivex import operators as ops
 from functools import partial
@@ -72,28 +72,30 @@ class LlmInferenceProcess:
 
     def __query_handler(self, query: str):
         with self.chatting:
-            self.history.append(HumanMessage(content=query))
-            query_response = QueryResponse(tokens=[], interrupted=False)
+            with controlled_area(partial(self.event_bus.publish, EventType.LLM_INFERENCE_STATUS), "running", "done", True, __name__):
+                self.history.append(HumanMessage(content=query))
+                query_response = QueryResponse(tokens=[], interrupted=False)
 
-            BREAK_TOKENS = ('.', ',', '!', '?', ";", "\n")
-            rx.from_iterable(self.chain.stream(self.history)).pipe(
-                ops.map(lambda t: StreamToken(token=t, done=bool(t == ""))),
-                ops.do_action(query_response.tokens.append),
-                ops.publish(lambda shared: shared.pipe(
-                    ops.buffer_when(lambda: shared.pipe(
-                        ops.filter(lambda t: not t.done and t.token[-1] in BREAK_TOKENS),
-                        ops.take(1)
-                    ))
-                )),
-                ops.take_while(lambda _: not self.interrupt_inference.is_set()),
-                ops.do_action(self.__on_new_buffer),
-                ops.take_while(lambda t: len(t) and not t[-1].done),
-                ops.finally_action(lambda: self.__on_done(query_response)),
-            ).run()
+                BREAK_TOKENS = ('.', ',', '!', '?', ";", "\n")
+                rx.from_iterable(self.chain.stream(self.history)).pipe(
+                    ops.map(lambda t: StreamToken(token=t, done=bool(t == ""))),
+                    ops.do_action(query_response.tokens.append),
+                    ops.publish(lambda shared: shared.pipe(
+                        ops.buffer_when(lambda: shared.pipe(
+                            ops.filter(lambda t: not t.done and t.token[-1] in BREAK_TOKENS),
+                            ops.take(1)
+                        ))
+                    )),
+                    ops.take_while(lambda _: not self.interrupt_inference.is_set()),
+                    ops.do_action(self.__on_new_buffer),
+                    ops.take_while(lambda t: len(t) and not t[-1].done),
+                    ops.finally_action(lambda: self.__on_done(query_response)),
+                ).run()
 
     def __on_new_buffer(self, buffer: List[StreamToken]):
         sentence = "".join(map(lambda t: t.token, buffer))
-        self.publish_sentence(sentence)
+        if len(sentence):
+            self.publish_sentence(sentence)
 
     def __on_done(self, response: QueryResponse):
         response.interrupted = self.interrupt_inference.is_set()

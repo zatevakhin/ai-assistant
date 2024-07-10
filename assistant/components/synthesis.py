@@ -10,10 +10,12 @@ from assistant.config import (
     PIPER_MODELS_LOCATION
 )
 
+from .audio import enrich_with_silence
 from voice_forge import PiperTts
-from .util import queue_as_observable
+from .util import queue_as_observable, controlled_area
 import numpy as np
 from .event_bus import EventBus, EventType
+from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +46,16 @@ class SpeechSynthesisProcess:
         logger.info(f"Sentences to synth: {self.sentences_queue.qsize()}")
 
     def synthesise_sentence(self, sentence: str):
-        self.is_synthesise.set()
-        speech, samplerate = self.tts.synthesize_stream(sentence)
-        speech_resampled = self.resample_speec_for_mumble(speech, samplerate)
+        with controlled_area(partial(self.event_bus.publish, EventType.SPEECH_SYNTH_STATUS), "running", "done", True, __name__):
+            self.is_synthesise.set()
+            speech, samplerate = self.tts.synthesize_stream(sentence)
+            speech = enrich_with_silence(speech, samplerate, 0.1, 0.1)
+            speech_resampled = self.resample_speec_for_mumble(speech, samplerate)
 
-        self.event_bus.publish(EventType.MUMBLE_PLAY_AUDIO, speech_resampled)
+            self.event_bus.publish(EventType.MUMBLE_PLAY_AUDIO, speech_resampled)
 
-        # Always clear state, after synth finished or interrupted.
-        self.is_synthesise.clear()
+            # Always clear state, after synth finished or interrupted.
+            self.is_synthesise.clear()
 
     @staticmethod
     def resample_speec_for_mumble(speech: np.ndarray[np.int16], samplerate: int) -> np.ndarray[np.int16]:

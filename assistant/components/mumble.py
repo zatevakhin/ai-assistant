@@ -10,7 +10,8 @@ from pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED, PYMUMBLE_CLBK_CO
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from pymumble_py3.soundqueue import SoundChunk
 from .event_bus import EventBus, EventType
-from .util import queue_as_observable
+from .util import queue_as_observable, controlled_area
+from functools import partial
 
 import reactivex as rx
 from reactivex.abc import DisposableBase
@@ -112,20 +113,22 @@ class MumbleProcess:
         self.play_audo_queue.put(audio)
 
     def __on_play(self, audio: NDArray[np.int16]):
-        self.__is_playing.set()
+        with controlled_area(partial(self.event_bus.publish, EventType.MUMBLE_PLAYING_STATUS), "running", "done", True, __name__):
+            self.__is_playing.set()
 
-        self.playing_sub = rx.zip(rx.interval(0.020), rx.from_iterable(chop_audio(audio, PYMUMBLE_SAMPLERATE, 20))).pipe(
-            ops.map(lambda x: x[1].tobytes()),
-            ops.do_action(self.client.sound_output.add_sound),
-            ops.finally_action(self.__on_interrupted),
-        ).subscribe(on_completed=self.__on_play_complete)
+            self.playing_sub = rx.zip(rx.interval(0.020), rx.from_iterable(chop_audio(audio, PYMUMBLE_SAMPLERATE, 20))).pipe(
+                ops.map(lambda x: x[1].tobytes()),
+                ops.do_action(self.client.sound_output.add_sound),
+                ops.finally_action(self.__on_interrupted),
+            ).subscribe(on_completed=self.__on_play_complete)
 
-        # NOTE: Block thread until playing of audio is done.
-        # TODO: Split sleep in 20ms chunks and add interrupt condition
-        time.sleep(audio_length(audio, PYMUMBLE_SAMPLERATE) / 1000.0)
+            # NOTE: Block thread until playing of audio is done.
+            # TODO: Split sleep in 20ms chunks and add interrupt condition
+            time.sleep(audio_length(audio, PYMUMBLE_SAMPLERATE) / 1000.0)
+            self.event_bus.publish(EventType.MUMBLE_PLAYING_STATUS, "done")
 
-        # NOTE: Object maybe disposed by interrupt.
-        # self.playing_sub.dispose()
+            # NOTE: Object maybe disposed by interrupt.
+            # self.playing_sub.dispose()
 
     def on_sound(self, sound: NDArray[np.float32]):
         logger.debug(f"{type(sound)}, {sound.flags.writeable}")
@@ -153,5 +156,4 @@ class MumbleProcess:
         logger.info("Mumble ... STOPPING")
         self.running = False
         self.client.stop()
-        self.__is_playing.set()
         logger.info("Mumble ... DEAD")

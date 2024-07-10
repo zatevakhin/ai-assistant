@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 from .event_bus import EventBus, EventType
 from voice_pulse import SpeechSegment
 from reactivex.scheduler import NewThreadScheduler
-from .util import queue_as_observable
+from .util import queue_as_observable, controlled_area
 from functools import partial
 
 logger = logging.getLogger(__name__)
@@ -54,15 +54,16 @@ class SpeechTranscriberProcess:
         self.speech_queue.put(np.array(segment.speech))
 
     def __speech_transcribe(self, speech: NDArray[np.float32]):
-        logger.debug(f"{type(speech)}, {speech.shape}, {speech.dtype}, writeable: {speech.flags.writeable}")
-        segments, info = self.whisper.transcribe(speech)
-        text = "".join(map(lambda s: s.text, filter(lambda s: s.text, segments))).strip()
+        with controlled_area(partial(self.event_bus.publish, EventType.TRANSCRIPTION_STATUS), "running", "done", True, __name__):
+            logger.debug(f"{type(speech)}, {speech.shape}, {speech.dtype}, writeable: {speech.flags.writeable}")
+            segments, info = self.whisper.transcribe(speech)
+            text = "".join(map(lambda s: s.text, filter(lambda s: s.text, segments))).strip()
 
-        # TODO: Make specific type instead dict
-        transcription = {
-            "text": text,
-            "language": info.language,
-            "probability": info.language_probability
-        }
+            # TODO: Make specific type instead dict
+            transcription = {
+                "text": text,
+                "language": info.language,
+                "probability": info.language_probability
+            }
 
-        self.on_transcription(transcription)
+            self.on_transcription(transcription)
