@@ -7,7 +7,8 @@ from assistant.components import (
     SpeechTranscriberProcess,
     LlmInferenceProcess,
     SpeechSynthesisProcess,
-    EventBus
+    EventBus,
+    InterruptOr
 )
 
 
@@ -23,6 +24,7 @@ class VoiceAssistant:
         # TODO: Combine speech input if there is not a big delta.
         self.transcriber = SpeechTranscriberProcess(self.event_bus)
         # TODO: Consider to add interrupt manager process, that will evaluate if interruption needed or not.
+        self.interruptor = InterruptOr(self.event_bus)
         self.llm_inference = LlmInferenceProcess(self.event_bus)
         self.speech_synthesis = SpeechSynthesisProcess(self.event_bus)
 
@@ -30,6 +32,7 @@ class VoiceAssistant:
         self.mumble.run()
         self.vad.run()
         self.transcriber.run()
+        self.interruptor.run()
         self.llm_inference.run()
         self.speech_synthesis.run()
 
@@ -37,6 +40,7 @@ class VoiceAssistant:
 
         self.mumble.stop()
         self.transcriber.stop()
+        self.interruptor.stop()
         self.llm_inference.stop()
         self.speech_synthesis.stop()
         self.vad.stop()

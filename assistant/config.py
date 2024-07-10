@@ -13,9 +13,9 @@ MUMBLE_SERVER_PASSWORD = os.environ.get("MUMBLE_SERVER_PASSWORD", "")
 WHISPER_MODELS_LOCATION = os.environ.get(
     "WHISPER_MODELS_LOCATION", "data/whisper-models"
 )
-WHISPER_MODEL_NAME = os.environ.get("WHISPER_MODEL_NAME", "small.en")
-WHISPER_USE_DEVICE = os.environ.get("WHISPER_USE_DEVICE", "cpu")
-WHISPER_USE_COMPUTE_TYPE = os.environ.get("WHISPER_USE_COMPUTE_TYPE", "int8")
+WHISPER_MODEL_NAME = os.environ.get("WHISPER_MODEL_NAME", "tiny.en")
+WHISPER_USE_DEVICE = os.environ.get("WHISPER_USE_DEVICE", "cuda")
+WHISPER_USE_COMPUTE_TYPE = os.environ.get("WHISPER_USE_COMPUTE_TYPE", "float16")
 
 ASSISTANT_NAME = os.environ.get("ASSISTANT_NAME", "Aya")
 ASSISTANT_BREAK_ON_TOKENS = [".", ",", "!", "?", ";", ":", "\n"]
@@ -27,3 +27,4 @@ OLLAMA_LLM = os.environ.get("OLLAMA_LLM", "llama3:8b")
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 OLLAMA_LLM_STOP_TOKENS = [f"{ASSISTANT_NAME}:", f"{ASSISTANT_NAME}:".lower()]
 OLLAMA_LLM_TEMPERATURE = int(os.environ.get("OLLAMA_LLM_TEMPERATURE", 0.2))
+OLLAMA_MODEL_KEEP_ALIVE = os.environ.get("OLLAMA_MODEL_KEEP_ALIVE", "1h")

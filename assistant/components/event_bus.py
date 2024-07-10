@@ -6,14 +6,19 @@ class EventType(Enum):
     MUMBLE_NEW_AUDIO = auto()
     MUMBLE_PLAY_AUDIO = auto()
     MUMBLE_INTERRUPT_AUDIO = auto()
+    MUMBLE_PLAYING_STATUS = auto()
 
     VAD_NEW_SPEECH = auto()
 
     TRANSCRIPTION_DONE = auto()
+    TRANSCRIPTION_STATUS = auto()
 
     LLM_STREAM_DONE = auto()
     LLM_NEW_SENTENCE = auto()
     LLM_STREAM_INTERRUPT = auto()
+    LLM_INFERENCE_STATUS = auto()
+
+    SPEECH_SYNTH_STATUS = auto()
 
 
 class EventBus:
