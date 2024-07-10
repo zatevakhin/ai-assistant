@@ -16,6 +16,7 @@ from assistant.config import (
     OLLAMA_LLM_TEMPERATURE,
     OLLAMA_LLM,
     OLLAMA_BASE_URL,
+    ASSISTANT_BREAK_ON_TOKENS
 )
 from .util import queue_as_observable, controlled_area
 import reactivex as rx
@@ -76,13 +77,12 @@ class LlmInferenceProcess:
                 self.history.append(HumanMessage(content=query))
                 query_response = QueryResponse(tokens=[], interrupted=False)
 
-                BREAK_TOKENS = ('.', ',', '!', '?', ";", "\n")
                 rx.from_iterable(self.chain.stream(self.history)).pipe(
                     ops.map(lambda t: StreamToken(token=t, done=bool(t == ""))),
                     ops.do_action(query_response.tokens.append),
                     ops.publish(lambda shared: shared.pipe(
                         ops.buffer_when(lambda: shared.pipe(
-                            ops.filter(lambda t: not t.done and t.token[-1] in BREAK_TOKENS),
+                            ops.filter(lambda t: not t.done and t.token[-1] in ASSISTANT_BREAK_ON_TOKENS),
                             ops.take(1)
                         ))
                     )),
