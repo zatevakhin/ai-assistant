@@ -11,12 +11,13 @@ from .event_bus import EventBus, EventType
 from pydantic import BaseModel
 
 from assistant.config import (
-    ASSISTANT_NAME,
     OLLAMA_LLM_STOP_TOKENS,
     OLLAMA_LLM_TEMPERATURE,
     OLLAMA_LLM,
     OLLAMA_BASE_URL,
-    ASSISTANT_BREAK_ON_TOKENS
+    ASSISTANT_BREAK_ON_TOKENS,
+    INITIAL_SYSTEM_PROMPT,
+    INTERRUPT_PROMPT,
 )
 from .util import queue_as_observable, controlled_area
 import reactivex as rx
@@ -51,10 +52,9 @@ class LlmInferenceProcess:
         self.llm = self.create_llm(OLLAMA_LLM)
         self.running = False
         self.interrupt_inference = threading.Event()
-        self.chatting = threading.Lock()
 
         self.history = [
-            SystemMessage(content=f"You are a helpful AI assistant. Your name is {ASSISTANT_NAME}. Your answers always short and concise."),
+            SystemMessage(content=INITIAL_SYSTEM_PROMPT),
         ]
 
         output_parser = StrOutputParser()
@@ -72,25 +72,24 @@ class LlmInferenceProcess:
         )
 
     def __query_handler(self, query: str):
-        with self.chatting:
-            with controlled_area(partial(self.event_bus.publish, EventType.LLM_INFERENCE_STATUS), "running", "done", True, __name__):
-                self.history.append(HumanMessage(content=query))
-                query_response = QueryResponse(tokens=[], interrupted=False)
+        with controlled_area(partial(self.event_bus.publish, EventType.LLM_INFERENCE_STATUS), "running", "done", True, __name__):
+            self.history.append(HumanMessage(content=query))
+            query_response = QueryResponse(tokens=[], interrupted=False)
 
-                rx.from_iterable(self.chain.stream(self.history)).pipe(
-                    ops.map(lambda t: StreamToken(token=t, done=bool(t == ""))),
-                    ops.do_action(query_response.tokens.append),
-                    ops.publish(lambda shared: shared.pipe(
-                        ops.buffer_when(lambda: shared.pipe(
-                            ops.filter(lambda t: not t.done and t.token[-1] in ASSISTANT_BREAK_ON_TOKENS),
-                            ops.take(1)
-                        ))
-                    )),
-                    ops.take_while(lambda _: not self.interrupt_inference.is_set()),
-                    ops.do_action(self.__on_new_buffer),
-                    ops.take_while(lambda t: len(t) and not t[-1].done),
-                    ops.finally_action(lambda: self.__on_done(query_response)),
-                ).run()
+            rx.from_iterable(self.chain.stream(self.history)).pipe(
+                ops.map(lambda t: StreamToken(token=t, done=bool(t == ""))),
+                ops.do_action(query_response.tokens.append),
+                ops.publish(lambda shared: shared.pipe(
+                    ops.buffer_when(lambda: shared.pipe(
+                        ops.filter(lambda t: not t.done and t.token[-1] in ASSISTANT_BREAK_ON_TOKENS),
+                        ops.take(1)
+                    ))
+                )),
+                ops.take_while(lambda _: not self.interrupt_inference.is_set()),
+                ops.do_action(self.__on_new_buffer),
+                ops.take_while(lambda t: len(t) and not t[-1].done),
+                ops.finally_action(lambda: self.__on_done(query_response)),
+            ).run()
 
     def __on_new_buffer(self, buffer: List[StreamToken]):
         sentence = "".join(map(lambda t: t.token, buffer))
@@ -104,7 +103,7 @@ class LlmInferenceProcess:
         self.history.append(AIMessage(content=full_response))
 
         if response.interrupted:
-            self.history.append(SystemMessage(content=f"Note, {ASSISTANT_NAME}, you were interrupted by a user with previous message."))
+            self.history.append(SystemMessage(content=INTERRUPT_PROMPT))
 
     def on_query(self, transcription: dict):
         logger.info(f"on_query({transcription})")
