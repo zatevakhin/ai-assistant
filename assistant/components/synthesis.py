@@ -16,9 +16,14 @@ from .util import queue_as_observable, controlled_area
 import numpy as np
 from .event_bus import EventBus, EventType
 from functools import partial
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
+
+class Sentence(BaseModel):
+    text: str
+    audio: Any
 
 class SpeechSynthesisProcess:
     def __init__(self, event_bus: EventBus) -> None:
@@ -38,7 +43,7 @@ class SpeechSynthesisProcess:
         return PiperTts(model, PIPER_MODELS_LOCATION)
 
     def on_sentence(self, sentence: str):
-        logger.info(f"> on_sentence({sentence})")
+        logger.info(f"> on_sentence('{sentence}')")
         self.sentences_queue.put(sentence)
 
     def on_interruption(self, iterrupt: Any):
@@ -52,7 +57,8 @@ class SpeechSynthesisProcess:
             speech = enrich_with_silence(speech, samplerate, 0.1, 0.1)
             speech_resampled = self.resample_speec_for_mumble(speech, samplerate)
 
-            self.event_bus.publish(EventType.MUMBLE_PLAY_AUDIO, speech_resampled)
+            obj = Sentence(text=sentence, audio=speech_resampled)
+            self.event_bus.publish(EventType.MUMBLE_PLAY_AUDIO, obj)
 
             # Always clear state, after synth finished or interrupted.
             self.is_synthesise.clear()

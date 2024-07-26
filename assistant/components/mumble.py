@@ -10,6 +10,7 @@ from pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED, PYMUMBLE_CLBK_CO
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from pymumble_py3.soundqueue import SoundChunk
 from .event_bus import EventBus, EventType
+from .synthesis import Sentence
 from .util import queue_as_observable, controlled_area
 from functools import partial
 
@@ -108,9 +109,9 @@ class MumbleProcess:
     def __on_play_complete(self):
         self.__is_playing.clear()
 
-    def on_play(self, audio: NDArray[np.int16]):
-        logger.info(f"> on_play({type(audio)})")
-        self.play_audo_queue.put(audio)
+    def on_play(self, sentence: Sentence):
+        logger.info(f"> on_play('{sentence.text}')")
+        self.play_audo_queue.put(sentence.audio)
 
     def __on_play(self, audio: NDArray[np.int16]):
         with controlled_area(partial(self.event_bus.publish, EventType.MUMBLE_PLAYING_STATUS), "running", "done", True, __name__):
