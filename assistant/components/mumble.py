@@ -1,4 +1,3 @@
-import time
 import logging
 import numpy as np
 from numpy.typing import NDArray
@@ -18,7 +17,7 @@ import reactivex as rx
 from reactivex.abc import DisposableBase
 from reactivex import operators as ops
 
-from .audio import AudioBufferTransformer, audio_length, chop_audio
+from .audio import AudioBufferTransformer, chop_audio
 from assistant.config import (
     ASSISTANT_NAME,
     MUMBLE_SERVER_HOST,
@@ -45,6 +44,7 @@ class MumbleProcess:
         self.connected: threading.Event = threading.Event()
         self.__is_playing = threading.Event()
         self.__is_interrupted = threading.Event()
+        self.__is_play_done = threading.Event()
 
         self.play_audo_queue = Queue()
         self.observable_audios = queue_as_observable(self.play_audo_queue)
@@ -105,9 +105,11 @@ class MumbleProcess:
 
             self.__is_interrupted.clear()
             self.__is_playing.clear()
+            self.__is_play_done.set()
 
     def __on_play_complete(self):
         self.__is_playing.clear()
+        self.__is_play_done.set()
 
     def on_play(self, sentence: Sentence):
         logger.info(f"> on_play('{sentence.text}')")
@@ -115,6 +117,7 @@ class MumbleProcess:
 
     def __on_play(self, audio: NDArray[np.int16]):
         with controlled_area(partial(self.event_bus.publish, EventType.MUMBLE_PLAYING_STATUS), "running", "done", True, __name__):
+            self.__is_play_done.clear()
             self.__is_playing.set()
 
             self.playing_sub = rx.zip(rx.interval(0.020), rx.from_iterable(chop_audio(audio, PYMUMBLE_SAMPLERATE, 20))).pipe(
@@ -123,12 +126,7 @@ class MumbleProcess:
                 ops.finally_action(self.__on_interrupted),
             ).subscribe(on_completed=self.__on_play_complete)
 
-            # NOTE: Block thread until playing of audio is done.
-            # TODO: Split sleep in 20ms chunks and add interrupt condition
-            time.sleep(audio_length(audio, PYMUMBLE_SAMPLERATE) / 1000.0)
-
-            # NOTE: Object maybe disposed by interrupt.
-            # self.playing_sub.dispose()
+            self.__is_play_done.wait()
 
     def on_sound(self, sound: NDArray[np.float32]):
         logger.debug(f"{type(sound)}, {sound.flags.writeable}")
