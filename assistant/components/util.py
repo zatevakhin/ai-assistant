@@ -5,6 +5,8 @@ import threading
 import time
 from contextlib import contextmanager
 import logging
+from ollama import Client
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -43,3 +45,15 @@ def controlled_area(callback: Callable, in_event: Any, out_event: Any, measure_t
 
 
     callback(out_event)
+
+
+def ensure_model_exists(base_url: str, model: str):
+    o_client = Client(base_url)
+    models = o_client.list().get("models")
+
+    if model not in map(lambda item: item["model"], models):
+        logger.warning(f"Model '{model}' does not exists. Downloading.")
+
+        for _ in tqdm(o_client.pull(model, stream=True)):
+            pass
+

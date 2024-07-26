@@ -4,9 +4,11 @@ from langchain_community.chat_models import ChatOllama
 
 import threading
 import logging
+from ollama import Client
 from queue import Queue
 from typing import List, Any
 from .event_bus import EventBus, EventType
+
 
 from pydantic import BaseModel
 
@@ -19,7 +21,7 @@ from assistant.config import (
     INITIAL_SYSTEM_PROMPT,
     INTERRUPT_PROMPT,
 )
-from .util import queue_as_observable, controlled_area
+from .util import queue_as_observable, controlled_area, ensure_model_exists
 import reactivex as rx
 from reactivex import operators as ops
 from functools import partial
@@ -64,6 +66,8 @@ class LlmInferenceProcess:
 
     @staticmethod
     def create_llm(model: str):
+        ensure_model_exists(OLLAMA_BASE_URL, model)
+
         logger.info(f"Creating Ollama using '{model}' model.")
         return ChatOllama(
             base_url=OLLAMA_BASE_URL,

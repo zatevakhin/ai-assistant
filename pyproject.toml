@@ -9,6 +9,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 langchain = "^0.2.5"
+ollama = "^0.3.0"
 piper-tts = "^1.2.0"
 pymumble = "^1.6.1"
 resampy = "^0.4.3"

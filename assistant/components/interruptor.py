@@ -2,7 +2,7 @@ import logging
 import threading
 from queue import Queue
 from typing import Any
-from .util import queue_as_observable
+from .util import queue_as_observable, ensure_model_exists
 import numpy as np
 from .event_bus import EventBus, EventType
 from langchain_community.chat_models import ChatOllama
@@ -33,6 +33,8 @@ class InterruptOr:
 
     @staticmethod
     def create_llm(model: str):
+        ensure_model_exists(OLLAMA_BASE_URL, model)
+
         logger.info(f"Creating Ollama using '{model}' model.")
         return Ollama(
             base_url=OLLAMA_BASE_URL,

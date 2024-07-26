@@ -3,7 +3,7 @@
   name = "ai-assistant";
 
   env.PYTHONPATH = ".";
-  env.OLLAMA_BASE_URL = "http://galactica.lan:11434";
+  # env.OLLAMA_BASE_URL = "http://galactica.lan:11434";
   # FIX: NixOS User problems
   env.LD_LIBRARY_PATH = "/run/opengl-driver/lib:$LD_LIBRARY_PATH";
 
