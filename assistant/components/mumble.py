@@ -126,7 +126,6 @@ class MumbleProcess:
             # NOTE: Block thread until playing of audio is done.
             # TODO: Split sleep in 20ms chunks and add interrupt condition
             time.sleep(audio_length(audio, PYMUMBLE_SAMPLERATE) / 1000.0)
-            self.event_bus.publish(EventType.MUMBLE_PLAYING_STATUS, "done")
 
             # NOTE: Object maybe disposed by interrupt.
             # self.playing_sub.dispose()
