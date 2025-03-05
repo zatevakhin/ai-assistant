@@ -5,7 +5,7 @@ An open-source voice assistant that integrates with Mumble for voice chat capabi
 > NOTE: ⚠️ UNDER CONSTRUCTION ⚠️
 
 ## Prerequisites
-- Nix package manager with flakes enabled
+- Nix package manager with flakes enabled. [See guide](#development-using-nix-devenv)
 - Docker and Docker Compose
 - NVIDIA GPU (optional, but recommended for faster inference)
 
