@@ -14,8 +14,8 @@ WHISPER_MODELS_LOCATION = os.environ.get(
     "WHISPER_MODELS_LOCATION", "data/whisper-models"
 )
 WHISPER_MODEL_NAME = os.environ.get("WHISPER_MODEL_NAME", "tiny.en")
-WHISPER_USE_DEVICE = os.environ.get("WHISPER_USE_DEVICE", "cuda")
-WHISPER_USE_COMPUTE_TYPE = os.environ.get("WHISPER_USE_COMPUTE_TYPE", "float16")
+WHISPER_USE_DEVICE = os.environ.get("WHISPER_USE_DEVICE", "cpu")
+WHISPER_USE_COMPUTE_TYPE = os.environ.get("WHISPER_USE_COMPUTE_TYPE", "int8")
 
 ASSISTANT_NAME = os.environ.get("ASSISTANT_NAME", "Aya")
 ASSISTANT_BREAK_ON_TOKENS = [".", ",", "!", "?", ";", ":", "\n"]
