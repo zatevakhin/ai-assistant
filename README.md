@@ -84,9 +84,9 @@ echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
 sudo systemctl restart nix-daemon
 ```
 
-### Install Nix [devenv](https://devenv.sh/)
+4. Install Nix [devenv](https://devenv.sh/)
 
-Command below should be enough.
+> Command below should be enough.
 ```bash
 nix profile install nixpkgs#devenv
 ```
