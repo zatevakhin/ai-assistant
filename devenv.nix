@@ -1,5 +1,4 @@
 {
-  config,
   pkgs,
   lib,
   ...
@@ -39,6 +38,7 @@ in {
     [
       git
       zsh
+      curl
       libopus
       gcc-unwrapped.lib
     ]
@@ -46,11 +46,50 @@ in {
 
   enterShell = ''
     echo -e "Development environment is ready!\n"
-    echo -e " - Run ${config.env.GREEN}docker compose up mumble -d${config.env.CLEAR} to spin-up Mumble server."
-    echo -e " - Run ${config.env.GREEN}docker compose up ollama -d${config.env.CLEAR} to spin-up Ollama server (if needed)."
-    echo -e " - Run ${config.env.GREEN}jupyter-ui${config.env.CLEAR} to spin-up Jupyter Notebook server."
-    echo -e " - Finally run ${config.env.GREEN}python assistant/main.py${config.env.CLEAR} to run assistant."
-    echo -e " - ${config.env.YELLOW}Don't forget${config.env.CLEAR} to cleanup running ${config.env.RED}docker containers${config.env.CLEAR} after you finish."
+    if docker ps | grep -q "mumblevoip/mumble-server:latest"; then
+        echo -e " - ✅ Docker container with$GREEN Mumble server$CLEAR already running in background."
+        MUMBLE_RUNNING=true
+    else
+        echo -e " - Run$GREEN docker compose up mumble -d$CLEAR to spin-up Mumble server."
+        MUMBLE_RUNNING=false
+    fi
+
+    OLLAMA_RUNNING=false
+    if [[ "$OLLAMA_BASE_URL" == *"localhost"* ]] || [[ "$OLLAMA_BASE_URL" == *"127.0.0.1"* ]]; then
+        if docker ps | grep -q "ollama/ollama" && curl -s --head --fail "$OLLAMA_BASE_URL" > /dev/null; then
+            echo -e " - ✅$GREEN Ollama server$CLEAR at $GREEN$OLLAMA_BASE_URL$CLEAR is available."
+            OLLAMA_RUNNING=true
+        elif docker ps | grep -q "ollama/ollama"; then
+            echo -e " - ✅ Docker container with$GREEN Ollama server$CLEAR running, but service not responding."
+            echo -e "   - Try running$GREEN docker restart ollama$CLEAR to fix it."
+            OLLAMA_RUNNING=true
+        else
+            echo -e " - Run$GREEN docker compose up ollama -d$CLEAR to spin-up Ollama server."
+        fi
+    else
+        if curl -s --head --fail "$OLLAMA_BASE_URL" > /dev/null; then
+            echo -e " - ✅$GREEN Remote Ollama server$CLEAR at $GREEN$OLLAMA_BASE_URL$CLEAR is available."
+        else
+            echo -e " - ❌$RED Remote Ollama server$CLEAR at $RED$OLLAMA_BASE_URL$CLEAR is not responding."
+            echo -e "   - Check if the remote server is running or if there are network/firewall issues."
+            echo -e "   - Alternatively, use a local server with by un-commenting$GREEN OLLAMA_BASE_URL=http://localhost:11434$CLEAR in$GREEN devenv.nix$CLEAR"
+        fi
+    fi
+
+    echo -e " - Run$GREEN jupyter-ui$CLEAR to spin-up Jupyter Notebook server for tests."
+    echo -e " - Finally run$GREEN python assistant/main.py$CLEAR to run assistant."
+    if $MUMBLE_RUNNING && $OLLAMA_RUNNING; then
+        echo -e " -$YELLOW Don't forget$CLEAR to cleanup running$RED Mumble and Ollama containers$CLEAR after you finish."
+        echo -e "   - Use$GREEN docker stop $(docker ps -q --filter ancestor=mumblevoip/mumble-server:latest) $(docker ps -q --filter ancestor=ollama/ollama)$CLEAR"
+    elif $MUMBLE_RUNNING; then
+        echo -e " -$YELLOW Don't forget$CLEAR to cleanup running$RED Mumble container$CLEAR after you finish."
+        echo -e "   - Use$GREEN docker stop $(docker ps -q --filter ancestor=mumblevoip/mumble-server:latest)$CLEAR"
+    elif $OLLAMA_RUNNING; then
+        echo -e " -$YELLOW Don't forget$CLEAR to cleanup running$RED Ollama container$CLEAR after you finish."
+        echo -e "   - Use$GREEN docker stop $(docker ps -q --filter ancestor=ollama/ollama)$CLEAR"
+    else
+        echo -e " - No cleanup needed as no containers are currently running."
+    fi
     echo -e "\n"
   '';
 
