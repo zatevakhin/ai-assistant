@@ -729,21 +729,22 @@ tests = ["asttokens (>=2.1.0)", "coverage", "coverage-enable-subprocess", "ipyth
 
 [[package]]
 name = "faster-whisper"
-version = "1.0.3"
+version = "1.1.1"
 description = "Faster Whisper transcription with CTranslate2"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "faster-whisper-1.0.3.tar.gz", hash = "sha256:1a145db86450b56aaa623c8df7d4ef86e8a1159900f60533e2890e98e8453a17"},
-    {file = "faster_whisper-1.0.3-py3-none-any.whl", hash = "sha256:364d0e378ab232ed26f39656e5c98548b38045224e206b20f7d8c90e2745b9d3"},
+    {file = "faster-whisper-1.1.1.tar.gz", hash = "sha256:50d27571970c1be0c2b2680a2593d5d12f9f5d2f10484f242a1afbe7cb946604"},
+    {file = "faster_whisper-1.1.1-py3-none-any.whl", hash = "sha256:5808dc334fb64fb4336921450abccfe5e313a859b31ba61def0ac7f639383d90"},
 ]
 
 [package.dependencies]
-av = ">=11.0,<13"
+av = ">=11"
 ctranslate2 = ">=4.0,<5"
 huggingface-hub = ">=0.13"
 onnxruntime = ">=1.14,<2"
 tokenizers = ">=0.13,<1"
+tqdm = "*"
 
 [package.extras]
 conversion = ["transformers[torch] (>=4.23)"]
@@ -3990,4 +3991,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "e5864a56d723c6300e21a46a680aadbc0b59fe5ca6a76f4d9bfeff01f3d904fb"
+content-hash = "ba3cac913db64631dde285ec3645d388206dbbd96dc333dd97ff70b61a6f26db"
