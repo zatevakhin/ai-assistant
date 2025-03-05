@@ -18,7 +18,7 @@ in {
   env =
     {
       PYTHONPATH = ".";
-      OLLAMA_BASE_URL = "http://ollama.homeworld.lan";
+      OLLAMA_BASE_URL = "http://localhost:11434";
     }
     // lib.optionalAttrs pkgs.stdenv.isLinux {
       # FIX: NixOS User problems
@@ -62,5 +62,4 @@ in {
   };
 
   # See full reference at https://devenv.sh/reference/options/
-  starship.enable = false;
 }
