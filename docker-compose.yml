@@ -1,15 +1,12 @@
 ---
 services:
   mumble:
-    # build:
-    #   context: https://github.com/mumble-voip/mumble-docker.git#master
-    #   dockerfile: Dockerfile
     image: mumblevoip/mumble-server:latest
     ports:
       - "64738:64738"
       - "64738:64738/udp"
     volumes:
-      - "${PWD}/data/mumble:/data"
+      - mumble_data:/data
     restart: unless-stopped
 
   ollama:
@@ -17,23 +14,29 @@ services:
     runtime: nvidia
     privileged: true
     volumes:
-      - ${PWD}/data/ollama:/root/.ollama
+      - ollama_data:/root/.ollama
     ports:
       - "11434:11434"
     restart: unless-stopped
 
-  assistant:
-    build:
-      context: .
-      dockerfile: assistant.Dockerfile
-    image: assistant:latest
-    volumes:
-      - "${PWD}/data/piper-models:/data/piper-models"
-      - "${PWD}/data/whisper-models:/data/whisper-models"
-      - "${PWD}/data/vad-records:/data/vad-records"
-    restart: unless-stopped
-    depends_on:
-      - ollama
-      - mumble
-    environment:
-      - MUMBLE_SERVER_HOST=mumble
+  # NOTE: Don't use assistant service, it isn't ready.
+  # assistant:
+  #   build:
+  #     context: .
+  #     dockerfile: assistant.Dockerfile
+  #   image: assistant:latest
+  #   volumes:
+  #     - assistant_data:/data/piper-models
+  #     - assistant_data:/data/whisper-models
+  #     - assistant_data:/data/vad-records
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - ollama
+  #     - mumble
+  #   environment:
+  #     - MUMBLE_SERVER_HOST=mumble
+
+volumes:
+  mumble_data:
+  ollama_data:
+  assistant_data:
