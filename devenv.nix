@@ -23,7 +23,7 @@ in {
     }
     // lib.optionalAttrs pkgs.stdenv.isLinux {
       # FIX: NixOS User problems
-      LD_LIBRARY_PATH = "/run/opengl-driver/lib:$LD_LIBRARY_PATH";
+      LD_LIBRARY_PATH = "/run/opengl-driver/lib:${pkgs.lib.makeLibraryPath cuda}:$LD_LIBRARY_PATH";
     }
     // {
       # NOTE: Just text colors.
