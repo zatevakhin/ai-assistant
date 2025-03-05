@@ -7,7 +7,7 @@ license = "GPLv3"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 langchain = "^0.2.5"
 ollama = "^0.3.0"
 piper-tts = "^1.2.0"
@@ -25,6 +25,7 @@ voice-forge = {git = "https://github.com/zatevakhin/voice-forge.git", rev = "v0.
 ruff = "^0.4.10"
 pytest = "^8.2.2"
 ipykernel = "^6.29.4"
+jupyterlab = "^4"
 
 [[tool.poetry.source]]
 name = "pytorch"
