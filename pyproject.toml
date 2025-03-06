@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "ai-assistant"
+name = "system-iii"
 version = "0.1.0"
 description = ""
 authors = ["Ivan Zatevakhin"]

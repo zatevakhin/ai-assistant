@@ -13,7 +13,7 @@
       ]
     else [];
 in {
-  name = "ai-assistant";
+  name = "system-iii";
 
   env =
     {
