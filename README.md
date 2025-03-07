@@ -11,7 +11,7 @@ An open-source voice assistant that integrates with Mumble for voice chat capabi
 
 ## Quick Start
 1. Ensure that prerequisites are meet
-2. Run `nix develop`
+2. Run `devenv shell`
 3. Run **Mumble** server `docker-compose up mumble -d`
 4. Run **Ollama** `docker-compose up ollama -d` if needed
 5. Run **Assistant** `python assistant/main.py`
@@ -94,6 +94,6 @@ nix profile install nixpkgs#devenv
 > If not, follow the official guide: https://devenv.sh/getting-started/
 
 ### Activate development environment
-Run `nix develop` it will create environment like `conda`/`mamba`
+Run `devenv shell` it will create environment like `conda`/`mamba`
 
 
