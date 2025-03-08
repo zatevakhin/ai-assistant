@@ -1,18 +1,60 @@
 import logging
-
 from assistant.components.llm import QueryResponse
 from assistant.components.synthesis import Sentence
+from queue import Queue
 from .util import ensure_model_exists
 from .event_bus import EventBus, EventType
 from langchain_ollama import OllamaLLM
+from langchain.output_parsers import PydanticOutputParser, RetryOutputParser
+
+from .transcriber import TranscribedSegment
+from langchain.prompts import PromptTemplate
+from pydantic import BaseModel, Field
+
 
 from assistant.config import (
+    ASSISTANT_NAME,
     OLLAMA_LLM_TEMPERATURE,
     OLLAMA_BASE_URL,
     OLLAMA_MODEL_KEEP_ALIVE
 )
 
 logger = logging.getLogger(__name__)
+
+FILTER_PROMPT_TEMPLATE = f"""
+You are {ASSISTANT_NAME}, deciding how to handle a new user input while in an ongoing conversation. Prioritize the user's needs while maintaining focus on the current task. Be concise in your answer.
+
+Previous input: {{previous_query}}
+Current input: {{current_query}}
+
+Select ONE action:
+
+1. DISCARD (Default): Continue with previous input, ignoring current input.
+   Use when current input is not urgent or interrupting.
+
+2. INTERRUPT: Stop current process and address new input immediately.
+   Use when user says WAIT, STOP, or explicitly requests interruption.
+
+3. APPEND: Combine both inputs and address together.
+   Use when current input directly relates to and enhances previous input.
+
+4. PARALLEL: Handle both inputs simultaneously.
+   Use ONLY for urgent inputs that cannot be discarded while previous remains important.
+
+{{format_instructions}}
+
+Respond with JSON (```json ... ```) in this format:
+```json
+{{{{
+    "action": "[DISCARD|INTERRUPT|APPEND|PARALLEL]",
+    "reason": "Brief explanation of your choice"
+}}}}
+```
+"""
+
+class ActionDecision(BaseModel):
+    action: str = Field(description="The chosen action: DISCARD, INTERRUPT, APPEND or PARALLEL")
+    reason: str = Field(description="A brief explanation for why this action was chosen")
 
 
 class InterruptOr:
@@ -26,9 +68,10 @@ class InterruptOr:
         self.event_bus.subscribe(EventType.TRANSCRIPTION_STATUS, self.on_transcription_status)
         self.event_bus.subscribe(EventType.SPEECH_SYNTH_STATUS, self.on_speech_synthesis_status)
 
-        self.llm = self.create_llm("phi3:3.8b")
+        self.llm = self.create_llm("deepseek-r1:1.5b")
 
         self.running = False
+        self.queries: Queue[TranscribedSegment] = Queue()
         logger.info(f"{__name__} ... IDLE")
 
     @staticmethod
@@ -43,8 +86,47 @@ class InterruptOr:
             keep_alive=OLLAMA_MODEL_KEEP_ALIVE,
         )
 
-    def on_query(self, query: str):
-        logger.info(f"on_query({query})")
+    def on_query(self, query: TranscribedSegment):
+        logger.info(f"on_query = {query}")
+
+        if query.probability <= 0.6:
+            logger.info(f"query = '{query}', is ignored")
+            return
+
+        if not self.queries.empty():
+            parser = PydanticOutputParser(pydantic_object=ActionDecision)
+            retry_parser = RetryOutputParser.from_llm(parser=parser, llm=self.llm, max_retries=3)
+
+            previous_query = self.queries.get()
+
+            prompt = PromptTemplate(
+                template=FILTER_PROMPT_TEMPLATE,
+                input_variables=["previous_query", "current_query"],
+                partial_variables={"format_instructions": parser.get_format_instructions()}
+            )
+
+            filter_prompt = prompt.format_prompt(previous_query=previous_query.text, current_query=query.text)
+            output = self.llm.invoke(filter_prompt)
+
+            try:
+                result: ActionDecision = parser.parse(output)
+            except Exception:
+                logger.warning(f"Retry parsing: {output}")
+                result: ActionDecision = retry_parser.parse_with_prompt(output, filter_prompt)
+
+            logger.info(f"-> {result}")
+
+            if result.action in ["DISCARD"]:
+               self.event_bus.publish(EventType.LLM_SENTENCE_DISCARD, query.uuid)
+               self.queries.task_done()
+            elif result.action in ["INTERRUPT"]:
+               self.event_bus.publish(EventType.LLM_STREAM_INTERRUPT, query.uuid)
+               self.queries.task_done()
+            else:
+               logger.warning(f"action = '{result.action}', is not handled")
+
+        elif self.queries.empty():
+            self.queries.put(query)
 
     def on_inference_status(self, query: str):
         logger.info(f"on_inference_status('{query}')")
