@@ -1,4 +1,5 @@
 import logging
+
 from assistant.components.llm import QueryResponse
 from assistant.components.synthesis import Sentence
 from queue import Queue
@@ -12,7 +13,6 @@ from pydantic import BaseModel, Field
 
 from assistant.config import (
     ASSISTANT_NAME,
-    OLLAMA_LLM_TEMPERATURE,
     OLLAMA_BASE_URL,
     OLLAMA_MODEL_KEEP_ALIVE
 )
@@ -70,7 +70,7 @@ class InterruptOr:
         return ChatOllama(
             base_url=OLLAMA_BASE_URL,
             model=model,
-            temperature=OLLAMA_LLM_TEMPERATURE,
+            temperature=0,
             keep_alive=OLLAMA_MODEL_KEEP_ALIVE,
         )
 
