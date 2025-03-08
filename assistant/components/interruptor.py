@@ -4,9 +4,7 @@ from assistant.components.synthesis import Sentence
 from queue import Queue
 from .util import ensure_model_exists
 from .event_bus import EventBus, EventType
-from langchain_ollama import OllamaLLM
-from langchain.output_parsers import PydanticOutputParser, RetryOutputParser
-
+from langchain_ollama import ChatOllama
 from .transcriber import TranscribedSegment
 from langchain.prompts import PromptTemplate
 from pydantic import BaseModel, Field
@@ -40,16 +38,6 @@ Select ONE action:
 
 4. PARALLEL: Handle both inputs simultaneously.
    Use ONLY for urgent inputs that cannot be discarded while previous remains important.
-
-{{format_instructions}}
-
-Respond with JSON (```json ... ```) in this format:
-```json
-{{{{
-    "action": "[DISCARD|INTERRUPT|APPEND|PARALLEL]",
-    "reason": "Brief explanation of your choice"
-}}}}
-```
 """
 
 class ActionDecision(BaseModel):
@@ -68,7 +56,7 @@ class InterruptOr:
         self.event_bus.subscribe(EventType.TRANSCRIPTION_STATUS, self.on_transcription_status)
         self.event_bus.subscribe(EventType.SPEECH_SYNTH_STATUS, self.on_speech_synthesis_status)
 
-        self.llm = self.create_llm("deepseek-r1:1.5b")
+        self.llm = self.create_llm("llama3.2:3b")
 
         self.running = False
         self.queries: Queue[TranscribedSegment] = Queue()
@@ -79,7 +67,7 @@ class InterruptOr:
         ensure_model_exists(OLLAMA_BASE_URL, model)
 
         logger.info(f"Creating Ollama using '{model}' model.")
-        return OllamaLLM(
+        return ChatOllama(
             base_url=OLLAMA_BASE_URL,
             model=model,
             temperature=OLLAMA_LLM_TEMPERATURE,
@@ -94,25 +82,15 @@ class InterruptOr:
             return
 
         if not self.queries.empty():
-            parser = PydanticOutputParser(pydantic_object=ActionDecision)
-            retry_parser = RetryOutputParser.from_llm(parser=parser, llm=self.llm, max_retries=3)
-
             previous_query = self.queries.get()
 
             prompt = PromptTemplate(
                 template=FILTER_PROMPT_TEMPLATE,
                 input_variables=["previous_query", "current_query"],
-                partial_variables={"format_instructions": parser.get_format_instructions()}
             )
 
             filter_prompt = prompt.format_prompt(previous_query=previous_query.text, current_query=query.text)
-            output = self.llm.invoke(filter_prompt)
-
-            try:
-                result: ActionDecision = parser.parse(output)
-            except Exception:
-                logger.warning(f"Retry parsing: {output}")
-                result: ActionDecision = retry_parser.parse_with_prompt(output, filter_prompt)
+            result: ActionDecision = self.llm.with_structured_output(ActionDecision).invoke(filter_prompt)
 
             logger.info(f"-> {result}")
 
