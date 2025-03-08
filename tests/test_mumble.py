@@ -5,6 +5,8 @@ import time
 import resampy
 from queue import Queue
 
+from assistant.components.audio import audio_length
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from assistant.components import MumbleProcess, Sentence, EventBus, EventType
@@ -41,7 +43,7 @@ def test_play_sound_once(mumble_process: MumbleProcess):
     text = "Why is the sky blue?"
     speech, samplerate  = tts.synthesize_stream(text)
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    sentence = Sentence(text=text, audio=audio)
+    sentence = Sentence(text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE))
     mumble_process.on_play(sentence)
     assert not mumble_process.is_playing()
     assert mumble_process.get_number_of_items_to_play()
@@ -58,7 +60,8 @@ def test_play_sound_twice(mumble_process: MumbleProcess):
     text = "Why is the sky blue?"
     speech, samplerate  = tts.synthesize_stream(text)
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    sentence = Sentence(text=text, audio=audio)
+    sentence = Sentence(text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE))
+
     mumble_process.on_play(sentence)
     mumble_process.on_play(sentence)
 
@@ -77,7 +80,7 @@ def test_receive_sound(event_bus: EventBus):
     text = "Test, Test, Test!"
     speech, samplerate  = tts.synthesize_stream(text)
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    sentence = Sentence(text=text, audio=audio)
+    sentence = Sentence(text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE))
 
     sound_chunks = Queue()
 
@@ -102,7 +105,7 @@ def test_play_sound_with_interrupt(mumble_process: MumbleProcess, event_bus: Eve
     text = "Try to interrupt me!"
     speech, samplerate  = tts.synthesize_stream(text)
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    sentence = Sentence(text=text, audio=audio)
+    sentence = Sentence(text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE))
 
     mumble_process.on_play(sentence)
 

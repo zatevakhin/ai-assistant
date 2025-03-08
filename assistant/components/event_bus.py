@@ -5,6 +5,7 @@ from enum import Enum, auto
 class EventType(Enum):
     MUMBLE_NEW_AUDIO = auto()
     MUMBLE_PLAY_AUDIO = auto()
+    MUMBLE_NOW_PLAYING = auto()
     MUMBLE_INTERRUPT_AUDIO = auto()
     MUMBLE_PLAYING_STATUS = auto()
 

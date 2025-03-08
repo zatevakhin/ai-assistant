@@ -1,4 +1,7 @@
 import logging
+
+from assistant.components.llm import QueryResponse
+from assistant.components.synthesis import Sentence
 from .util import ensure_model_exists
 from .event_bus import EventBus, EventType
 from langchain_ollama import OllamaLLM
@@ -17,7 +20,9 @@ class InterruptOr:
         self.event_bus = event_bus
         self.event_bus.subscribe(EventType.TRANSCRIPTION_DONE, self.on_query)
         self.event_bus.subscribe(EventType.LLM_INFERENCE_STATUS, self.on_inference_status)
+        self.event_bus.subscribe(EventType.LLM_STREAM_DONE, self.on_llm_stream_done)
         self.event_bus.subscribe(EventType.MUMBLE_PLAYING_STATUS, self.on_mumble_playing_status)
+        self.event_bus.subscribe(EventType.MUMBLE_NOW_PLAYING, self.on_mumble_now_playing)
         self.event_bus.subscribe(EventType.TRANSCRIPTION_STATUS, self.on_transcription_status)
         self.event_bus.subscribe(EventType.SPEECH_SYNTH_STATUS, self.on_speech_synthesis_status)
 
@@ -44,8 +49,14 @@ class InterruptOr:
     def on_inference_status(self, query: str):
         logger.info(f"on_inference_status('{query}')")
 
+    def on_llm_stream_done(self, query: QueryResponse):
+        logger.info(f"on_llm_stream_done({query}, {len(query.tokens)})")
+
     def on_mumble_playing_status(self, query: str):
         logger.info(f"on_mumble_playing_status('{query}')")
+
+    def on_mumble_now_playing(self, sentence: Sentence):
+        logger.info(f"on_mumble_now_playing({sentence})")
 
     def on_transcription_status(self, query: str):
         logger.info(f"on_transcription_status('{query}')")

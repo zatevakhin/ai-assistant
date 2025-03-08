@@ -9,7 +9,7 @@ from typing import List, Any
 from .event_bus import EventBus, EventType
 from .transcriber import TranscribedSegment
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from assistant.config import (
     OLLAMA_LLM_STOP_TOKENS,
@@ -30,12 +30,12 @@ logger = logging.getLogger(__name__)
 
 
 class StreamToken(BaseModel):
-    token: str
-    done: bool
+    token: str = Field(repr=True)
+    done: bool = Field(repr=True)
 
 class QueryResponse(BaseModel):
-    tokens: List[StreamToken]
-    interrupted: bool
+    tokens: List[StreamToken] = Field(repr=True, default_factory=list)
+    interrupted: bool = Field(repr=True)
 
 
 class LlmInferenceProcess:
@@ -107,6 +107,7 @@ class LlmInferenceProcess:
 
         if response.interrupted:
             self.history.append(SystemMessage(content=INTERRUPT_PROMPT))
+        self.event_bus.publish(EventType.LLM_STREAM_DONE, response)
 
     def on_query(self, t: TranscribedSegment):
         logger.info(f"on_query({t})")

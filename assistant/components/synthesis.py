@@ -10,7 +10,7 @@ from assistant.config import (
     PIPER_MODELS_LOCATION
 )
 
-from .audio import enrich_with_silence
+from .audio import enrich_with_silence, audio_length
 from voice_forge import PiperTts
 from .util import queue_as_observable, controlled_area
 import numpy as np
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 class Sentence(BaseModel):
     text: str
     audio: Any
+    length: float
 
 class SpeechSynthesisProcess:
     def __init__(self, event_bus: EventBus) -> None:
@@ -46,6 +47,7 @@ class SpeechSynthesisProcess:
     def on_sentence(self, sentence: str):
         logger.info(f"> on_sentence('{sentence}')")
         self.sentences_queue.put(sentence)
+        logger.info(f"Sentences to synth: {self.sentences_queue.qsize()}")
 
     def on_interruption(self, interrupt: Any):
         logger.warning(f"> on_interruption({interrupt})")
@@ -58,7 +60,7 @@ class SpeechSynthesisProcess:
             speech = enrich_with_silence(speech, samplerate, 0.1, 0.1)
             audio = self.resample_speec_for_mumble(speech, samplerate)
 
-            obj = Sentence(text=sentence, audio=audio)
+            obj = Sentence(text=sentence, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE))
             self.event_bus.publish(EventType.MUMBLE_PLAY_AUDIO, obj)
 
             # Always clear state, after synth finished or interrupted.

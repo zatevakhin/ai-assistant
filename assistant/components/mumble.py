@@ -113,19 +113,20 @@ class MumbleProcess:
 
     def on_play(self, sentence: Sentence):
         logger.info(f"> on_play('{sentence.text}')")
-        self.play_audio_queue.put(sentence.audio)
+        self.play_audio_queue.put(sentence)
 
-    def __on_play(self, audio: NDArray[np.int16]):
+    def __on_play(self, sentence: Sentence):
         with controlled_area(partial(self.event_bus.publish, EventType.MUMBLE_PLAYING_STATUS), "running", "done", True, __name__):
             self.__is_play_done.clear()
             self.__is_playing.set()
 
-            self.playing_sub = rx.zip(rx.interval(0.020), rx.from_iterable(chop_audio(audio, PYMUMBLE_SAMPLERATE, 20))).pipe(
+            self.playing_sub = rx.zip(rx.interval(0.020), rx.from_iterable(chop_audio(sentence.audio, PYMUMBLE_SAMPLERATE, 20))).pipe(
                 ops.map(lambda x: x[1].tobytes()),
                 ops.do_action(self.client.sound_output.add_sound),
                 ops.finally_action(self.__on_interrupted),
             ).subscribe(on_completed=self.__on_play_complete)
 
+            self.event_bus.publish(EventType.MUMBLE_NOW_PLAYING, sentence)
             self.__is_play_done.wait()
 
     def on_sound(self, sound: NDArray[np.float32]):
