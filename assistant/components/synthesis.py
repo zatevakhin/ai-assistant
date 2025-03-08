@@ -55,9 +55,9 @@ class SpeechSynthesisProcess:
             self.is_synthesise.set()
             speech, samplerate = self.tts.synthesize_stream(sentence)
             speech = enrich_with_silence(speech, samplerate, 0.1, 0.1)
-            speech_resampled = self.resample_speec_for_mumble(speech, samplerate)
+            audio = self.resample_speec_for_mumble(speech, samplerate)
 
-            obj = Sentence(text=sentence, audio=speech_resampled)
+            obj = Sentence(text=sentence, audio=audio)
             self.event_bus.publish(EventType.MUMBLE_PLAY_AUDIO, obj)
 
             # Always clear state, after synth finished or interrupted.
