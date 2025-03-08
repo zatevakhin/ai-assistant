@@ -14,6 +14,7 @@ from .audio import enrich_with_silence
 from voice_forge import PiperTts
 from .util import queue_as_observable, controlled_area
 import numpy as np
+from numpy.typing import NDArray
 from .event_bus import EventBus, EventType
 from functools import partial
 from pydantic import BaseModel
@@ -64,7 +65,7 @@ class SpeechSynthesisProcess:
             self.is_synthesise.clear()
 
     @staticmethod
-    def resample_speec_for_mumble(speech: np.ndarray[np.int16], samplerate: int) -> np.ndarray[np.int16]:
+    def resample_speec_for_mumble(speech: NDArray[np.int16], samplerate: int) -> NDArray[np.int16]:
         return resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
 
     def run(self):

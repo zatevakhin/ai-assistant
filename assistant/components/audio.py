@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Callable
 
 import numpy as np
+from numpy.typing import NDArray
 import resampy
 import soundfile as sf
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
@@ -12,7 +13,7 @@ from pymumble_py3.soundqueue import SoundChunk
 class AudioBufferTransformer:
     def __init__(
         self,
-        callback: Callable[[np.ndarray[np.float32]], None],
+        callback: Callable[[NDArray[np.float32]], None],
         target_samplerate: int,
         target_chunk_length_ms: int,
     ):
@@ -88,7 +89,7 @@ class AudioBufferTransformer:
 
 
 def record_audio_chunk(
-    chunk: np.ndarray[np.float32],
+    chunk: NDArray[np.float32],
     directory: str,
     samplerate: int,
     audio_format: str = "FLAC",
