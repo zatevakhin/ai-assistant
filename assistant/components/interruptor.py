@@ -1,7 +1,7 @@
 import logging
 from .util import ensure_model_exists
 from .event_bus import EventBus, EventType
-from langchain_community.llms.ollama import Ollama
+from langchain_ollama import OllamaLLM
 
 from assistant.config import (
     OLLAMA_LLM_TEMPERATURE,
@@ -31,7 +31,7 @@ class InterruptOr:
         ensure_model_exists(OLLAMA_BASE_URL, model)
 
         logger.info(f"Creating Ollama using '{model}' model.")
-        return Ollama(
+        return OllamaLLM(
             base_url=OLLAMA_BASE_URL,
             model=model,
             temperature=OLLAMA_LLM_TEMPERATURE,
