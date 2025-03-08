@@ -46,8 +46,8 @@ class MumbleProcess:
         self.__is_interrupted = threading.Event()
         self.__is_play_done = threading.Event()
 
-        self.play_audo_queue = Queue()
-        self.observable_audios = queue_as_observable(self.play_audo_queue)
+        self.play_audio_queue = Queue()
+        self.observable_audios = queue_as_observable(self.play_audio_queue)
         self.observable_audios.subscribe(self.__on_play)
         self.playing_sub: Optional[DisposableBase] = None
 
@@ -66,7 +66,7 @@ class MumbleProcess:
         )
 
     def get_number_of_items_to_play(self) -> int:
-        return self.play_audo_queue.qsize()
+        return self.play_audio_queue.qsize()
 
     def is_alive(self) -> bool:
         return self.client.is_alive()
@@ -99,9 +99,9 @@ class MumbleProcess:
 
     def __on_interrupted(self):
         if self.__is_interrupted.is_set():
-            while not self.play_audo_queue.empty():
-                self.play_audo_queue.get()
-                self.play_audo_queue.task_done()
+            while not self.play_audio_queue.empty():
+                self.play_audio_queue.get()
+                self.play_audio_queue.task_done()
 
             self.__is_interrupted.clear()
             self.__is_playing.clear()
@@ -113,7 +113,7 @@ class MumbleProcess:
 
     def on_play(self, sentence: Sentence):
         logger.info(f"> on_play('{sentence.text}')")
-        self.play_audo_queue.put(sentence.audio)
+        self.play_audio_queue.put(sentence.audio)
 
     def __on_play(self, audio: NDArray[np.int16]):
         with controlled_area(partial(self.event_bus.publish, EventType.MUMBLE_PLAYING_STATUS), "running", "done", True, __name__):

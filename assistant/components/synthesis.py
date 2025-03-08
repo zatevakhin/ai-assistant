@@ -46,8 +46,8 @@ class SpeechSynthesisProcess:
         logger.info(f"> on_sentence('{sentence}')")
         self.sentences_queue.put(sentence)
 
-    def on_interruption(self, iterrupt: Any):
-        logger.warning(f"> on_interruption({iterrupt})")
+    def on_interruption(self, interrupt: Any):
+        logger.warning(f"> on_interruption({interrupt})")
         logger.info(f"Sentences to synth: {self.sentences_queue.qsize()}")
 
     def synthesise_sentence(self, sentence: str):
