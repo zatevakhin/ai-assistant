@@ -15,6 +15,7 @@ class EventType(Enum):
 
     LLM_STREAM_DONE = auto()
     LLM_NEW_SENTENCE = auto()
+    LLM_SENTENCE_DISCARD = auto()
     LLM_STREAM_INTERRUPT = auto()
     LLM_INFERENCE_STATUS = auto()
 

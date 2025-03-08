@@ -58,13 +58,24 @@ def test_is_inference_working(llm: LlmInferenceProcess, event_bus: EventBus):
         answer.task_done()
 
 def test_interruption(llm: LlmInferenceProcess, event_bus: EventBus):
+    answer = Queue()
+    discarded = Queue()
+    event_bus.subscribe(EventType.LLM_NEW_SENTENCE, answer.put)
+    event_bus.subscribe(EventType.LLM_SENTENCE_DISCARD, discarded.put)
+
     event_bus.publish(EventType.TRANSCRIPTION_DONE,
-        TranscribedSegment(text="Hello!", language="en", probability=1)
+        TranscribedSegment(text="Hello! Could you explain thoroughly what are mitochondrias?", language="en", probability=1)
     )
 
     event_bus.publish(EventType.TRANSCRIPTION_DONE,
         TranscribedSegment(text="Why is the sky blue?", language="en", probability=1)
     )
 
-    sleep(10)
-    assert False # NOTE: Tests is broken for now.
+    sleep(2)
+
+    while not answer.empty():
+        print(answer.get())
+        answer.task_done()
+
+    # NOTE: Tests is broken for now.
+    assert not discarded.empty()
