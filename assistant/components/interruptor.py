@@ -1,11 +1,6 @@
 import logging
-import threading
-from queue import Queue
-from typing import Any
-from .util import queue_as_observable, ensure_model_exists
-import numpy as np
+from .util import ensure_model_exists
 from .event_bus import EventBus, EventType
-from langchain_community.chat_models import ChatOllama
 from langchain_community.llms.ollama import Ollama
 
 from assistant.config import (
@@ -44,7 +39,7 @@ class InterruptOr:
         )
 
     def on_query(self, query: str):
-        logger.info(f"on_query", query)
+        logger.info(f"on_query({query})")
 
     def on_inference_status(self, query: str):
         logger.info(f"on_inference_status('{query}')")

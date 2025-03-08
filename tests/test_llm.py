@@ -25,7 +25,7 @@ def llm(event_bus: EventBus):
 # TODO: Add test to ensure that specific LLM model is available.
 # TODO: Add history reset and add test for it.
 
-def test_is_inference_working(llm: LlmInferenceProcess, event_bus: EventBus):
+def test_is_inference_working(_: LlmInferenceProcess, event_bus: EventBus):
     answer = Queue()
     event_bus.subscribe(EventType.LLM_NEW_SENTENCE, answer.put)
 
@@ -62,7 +62,7 @@ def test_is_inference_working(llm: LlmInferenceProcess, event_bus: EventBus):
         answer.get()
         answer.task_done()
 
-def test_interruption(llm: LlmInferenceProcess, event_bus: EventBus):
+def test_interruption(_: LlmInferenceProcess, event_bus: EventBus):
     event_bus.publish(EventType.TRANSCRIPTION_DONE, {
         "text": "Hello!",
         "language": "en",

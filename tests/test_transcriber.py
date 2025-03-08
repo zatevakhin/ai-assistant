@@ -29,7 +29,7 @@ def transcriber(event_bus: EventBus):
     process.stop()
 
 
-def test_transcribe_speech(transcriber: SpeechTranscriberProcess, event_bus: EventBus):
+def test_transcribe_speech(_: SpeechTranscriberProcess, event_bus: EventBus):
 
     test_text = "Hello, World!"
 
@@ -41,7 +41,7 @@ def test_transcribe_speech(transcriber: SpeechTranscriberProcess, event_bus: Eve
     transcriptions_queue = Queue()
 
     seg = SpeechSegment(speech=audio, timestamp=datetime.now())
-    sub = event_bus.subscribe(EventType.TRANSCRIPTION_DONE, transcriptions_queue.put)
+    event_bus.subscribe(EventType.TRANSCRIPTION_DONE, transcriptions_queue.put)
     event_bus.publish(EventType.VAD_NEW_SPEECH, seg)
 
     transcription = transcriptions_queue.get()

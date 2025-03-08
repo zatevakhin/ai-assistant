@@ -12,7 +12,6 @@ from assistant.config import PIPER_TTS_MODEL, PIPER_MODELS_LOCATION, SPEECH_PIPE
 from voice_forge import PiperTts
 from assistant.components.audio import chop_audio, enrich_with_silence
 import numpy as np
-import soundfile as sf
 
 @pytest.fixture(scope="module")
 def event_bus():
@@ -28,7 +27,7 @@ def vad_process(event_bus: EventBus):
     process.stop()
 
 
-def test_is_speech(vad_process: VadProcess, event_bus: EventBus):
+def test_is_speech(_: VadProcess, event_bus: EventBus):
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
     speech, samplerate  = tts.synthesize_stream("Hello, World!")
     audio = resampy.resample(speech.astype(np.float32) / 32768.0, samplerate, 16000)
@@ -39,7 +38,7 @@ def test_is_speech(vad_process: VadProcess, event_bus: EventBus):
     def on_speech(seg: NDArray[np.float32]):
         speech_queue.put(seg)
 
-    subs = event_bus.subscribe(EventType.VAD_NEW_SPEECH, on_speech)
+    event_bus.subscribe(EventType.VAD_NEW_SPEECH, on_speech)
 
     for seg in chop_audio(audio, 16000, SPEECH_PIPELINE_BUFFER_SIZE_MILIS):
         event_bus.publish(EventType.MUMBLE_NEW_AUDIO, seg)

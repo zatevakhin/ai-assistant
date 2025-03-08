@@ -4,7 +4,6 @@ from langchain_community.chat_models import ChatOllama
 
 import threading
 import logging
-from ollama import Client
 from queue import Queue
 from typing import List, Any
 from .event_bus import EventBus, EventType
