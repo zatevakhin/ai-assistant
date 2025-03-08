@@ -7,7 +7,7 @@ import logging
 from queue import Queue
 from typing import List, Any
 from .event_bus import EventBus, EventType
-
+from .transcriber import TranscribedSegment
 
 from pydantic import BaseModel
 
@@ -108,22 +108,18 @@ class LlmInferenceProcess:
         if response.interrupted:
             self.history.append(SystemMessage(content=INTERRUPT_PROMPT))
 
-    def on_query(self, transcription: dict):
-        logger.info(f"on_query({transcription})")
-        language = transcription["language"]
-        text = transcription["text"]
-        probability = transcription["probability"]
-
-        if language not in ["en"]:
-            logger.warning(f"Language '{language}' will not be handled.")
+    def on_query(self, t: TranscribedSegment):
+        logger.info(f"on_query({t})")
+        if t.language not in ["en"]:
+            logger.warning(f"Language '{t.language}' will not be handled.")
             return
 
         min_probability = 0.6
-        if probability < min_probability:
-            logger.warning(f"Probability that this is '{language}' language is below '{min_probability}'.")
+        if t.probability < min_probability:
+            logger.warning(f"Probability that this is '{t.language}' language is below '{min_probability}'.")
             return
 
-        self.queries.put(text)
+        self.queries.put(t.text)
 
     def on_interruption(self, sample: Any):
         logger.warning(f"Interrupting: {sample}")

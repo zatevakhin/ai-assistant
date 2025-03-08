@@ -14,8 +14,17 @@ from voice_pulse import SpeechSegment
 from reactivex.scheduler import NewThreadScheduler
 from .util import queue_as_observable, controlled_area
 from functools import partial
+from pydantic import BaseModel, Field
+from uuid import uuid4, UUID
 
 logger = logging.getLogger(__name__)
+
+class TranscribedSegment(BaseModel):
+    text: str
+    language: str
+    probability: float
+    uuid: UUID = Field(default_factory=uuid4)
+
 
 class SpeechTranscriberProcess:
     def __init__(self, event_bus: EventBus):
@@ -59,11 +68,10 @@ class SpeechTranscriberProcess:
             segments, info = self.whisper.transcribe(speech)
             text = "".join(map(lambda s: s.text, filter(lambda s: s.text, segments))).strip()
 
-            # TODO: Make specific type instead dict
-            transcription = {
-                "text": text,
-                "language": info.language,
-                "probability": info.language_probability
-            }
+            segment = TranscribedSegment(
+                text=text,
+                language=info.language,
+                probability=info.language_probability,
+            )
 
-            self.on_transcription(transcription)
+            self.on_transcription(segment)
