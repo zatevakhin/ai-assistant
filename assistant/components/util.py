@@ -15,7 +15,7 @@ def observe(q: Queue, fn: Callable) -> Subject:
     subject.subscribe(fn)
 
     def producer():
-        while subject.is_disposed:
+        while not subject.is_disposed:
             item = q.get()
             if item is None:
                 subject.on_completed()
