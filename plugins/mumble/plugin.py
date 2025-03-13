@@ -58,7 +58,8 @@ class MumbleInterface(Plugin):
         )
 
         self.playback_queue = Queue()
-        self.subscriptions.append(observe(self.playback_queue, self.on_play_from_queue))
+        sub = observe(self.playback_queue, self.on_play_from_queue)
+        self.subscriptions.append(sub)
 
         self.is_connected = threading.Event()
         self.is_interrupted = threading.Event()
