@@ -24,7 +24,7 @@ class VadFilter(Plugin):
 
     def get_event_definitions(self) -> List[str]:
         return [
-            events.VAD_SPEEC_DETECT,
+            events.VAD_SPEECH_DETECT,
         ]
 
     def initialize(self) -> None:
@@ -69,4 +69,4 @@ class VadFilter(Plugin):
 
     def on_speech_detect(self, speech: SpeechSegment):
         self.logger.info(f"> on_speech_detect({type(speech)})")
-        self.event_bus.publish(events.VAD_SPEEC_DETECT, speech)
+        self.event_bus.publish(events.VAD_SPEECH_DETECT, speech)

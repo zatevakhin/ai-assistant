@@ -1,1 +1,1 @@
-VAD_SPEEC_DETECT = "vad.speech.detect"
+VAD_SPEECH_DETECT = "vad.speech.detect"
