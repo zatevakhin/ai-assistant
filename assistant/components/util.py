@@ -10,6 +10,23 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
+def observe(q: Queue, fn: Callable) -> Subject:
+    subject = Subject()
+    subject.subscribe(fn)
+
+    def producer():
+        while subject.is_disposed:
+            item = q.get()
+            if item is None:
+                subject.on_completed()
+                q.task_done()
+                break
+            subject.on_next(item)
+            q.task_done()
+
+    threading.Thread(target=producer, daemon=True).start()
+    return subject
+
 def queue_as_observable(q: Queue) -> Subject:
     subject = Subject()
 
