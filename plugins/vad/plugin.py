@@ -10,6 +10,7 @@ from voice_pulse.input_sources import CallbackInput
 
 from assistant.config import (
     SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
+    SPEECH_PIPELINE_SAMPLERATE,
     VAD_SILENCE_THRESHOLD,
 )
 
@@ -34,7 +35,7 @@ class VadFilter(Plugin):
         self.config = Config(
             device=None,
             channels=1,
-            samplerate=16000,
+            samplerate=SPEECH_PIPELINE_SAMPLERATE,
             vad_engine=VadEngine.SILERIO,
             vad_aggressiveness=VadAggressiveness.LOW,
             block_duration=SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
