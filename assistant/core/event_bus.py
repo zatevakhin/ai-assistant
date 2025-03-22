@@ -94,19 +94,19 @@ class EventBus:
     def call_service(self, plugin_name: str, service_name: str, *args, **kwargs) -> Any:
         """
         Synchronously call a service method on a plugin.
+        This method should ONLY be used for synchronous service methods.
         """
         request_id = str(uuid.uuid4())
         logger.debug(f"Service call {request_id}: {plugin_name}.{service_name}")
 
         service_info = self._get_service_info(plugin_name, service_name)
 
+        if service_info.is_async:
+            raise ValueError(f"Service '{service_name}' on plugin '{plugin_name}' is async. Use call_service_async instead.")
+
         try:
-            if service_info.is_async:
-                # For async methods, we need to run them in an event loop
-                return self._run_coroutine(service_info.method, *args, **kwargs)
-            else:
-                # For sync methods, call directly
-                return service_info.method(*args, **kwargs)
+            # Call the synchronous service method directly
+            return service_info.method(*args, **kwargs)
         except Exception as e:
             logger.error(f"Error calling service '{service_name}' on plugin '{plugin_name}' (request {request_id}): {e}")
             raise
@@ -114,36 +114,31 @@ class EventBus:
     def call_service_async(self, plugin_name: str, service_name: str, *args, **kwargs) -> Tuple[str, Future]:
         """
         Asynchronously call a service method on a plugin.
+        This method should ONLY be used for asynchronous service methods.
         """
         request_id = str(uuid.uuid4())
         logger.debug(f"Async service call {request_id}: {plugin_name}.{service_name}")
 
         service_info = self._get_service_info(plugin_name, service_name)
 
-        if service_info.is_async:
-            # For async methods, submit the coroutine runner to the thread pool
-            future = self.thread_pool.submit(
-                self._run_coroutine, service_info.method, *args, **kwargs
-            )
-        else:
-            # For sync methods, just submit the call to the thread pool
-            future = self.thread_pool.submit(service_info.method, *args, **kwargs)
+        if not service_info.is_async:
+            raise ValueError(f"Service '{service_name}' on plugin '{plugin_name}' is not async. Use call_service instead.")
+
+        def async_wrapper():
+            loop = asyncio.new_event_loop()
+            try:
+                asyncio.set_event_loop(loop)
+                return loop.run_until_complete(service_info.method(*args, **kwargs))
+            finally:
+                loop.close()
+
+        future = self.thread_pool.submit(async_wrapper)
 
         self.pending_calls[request_id] = future
 
-        # Set cleanup callback
         future.add_done_callback(lambda _: self._cleanup_call(request_id))
 
         return request_id, future
-
-    def _run_coroutine(self, coro_func, *args, **kwargs):
-        """Run a coroutine function and return its result."""
-        loop = asyncio.new_event_loop()
-        try:
-            asyncio.set_event_loop(loop)
-            return loop.run_until_complete(coro_func(*args, **kwargs))
-        finally:
-            loop.close()
 
     def _cleanup_call(self, request_id: str) -> None:
         """Remove a completed call from pending calls."""
