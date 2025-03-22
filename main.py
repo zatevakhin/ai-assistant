@@ -16,7 +16,8 @@ def main():
 
     logger.info("Yolooooooo")
     try:
-        time.sleep(500)
+        while True:
+            time.sleep(1)
     except KeyboardInterrupt:
         print("", end="\r")
         logger.info("Manually interrupted...")
