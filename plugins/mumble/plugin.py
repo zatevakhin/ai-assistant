@@ -1,5 +1,5 @@
 import logging
-from assistant.core import Plugin
+from assistant.core import Plugin, service
 from typing import List
 from numpy.typing import NDArray
 import numpy as np
@@ -20,6 +20,7 @@ from assistant.config import (
     MUMBLE_SERVER_HOST,
     MUMBLE_SERVER_PASSWORD,
     MUMBLE_SERVER_PORT,
+    MUMBLE_SERVER_CHANNEL,
     SPEECH_PIPELINE_SAMPLERATE,
     SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
 )
@@ -86,6 +87,10 @@ class MumbleInterface(Plugin):
         )
         self.client.is_ready() # waits connection
 
+        if MUMBLE_SERVER_CHANNEL:
+            if channel := self.client.channels.find_by_name(MUMBLE_SERVER_CHANNEL):
+                channel.move_in()
+
         self.event_bus.subscribe(events.MUMBLE_AUDIO_PLAY, self.on_play)
         self.logger.info(f"Plugin '{self.name}' initialized and ready")
 
@@ -111,6 +116,10 @@ class MumbleInterface(Plugin):
     def on_play(self, sentence: Sentence):
         self.logger.info(f"> on_play('{sentence.text}')")
         self.playback_queue.put(sentence)
+
+    @service
+    async def play_audio(self, sentence: Sentence):
+        pass
 
     def on_play_from_queue(self, sentence: Sentence):
         self.is_playback_done.clear()
