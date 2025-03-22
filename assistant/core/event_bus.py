@@ -86,7 +86,7 @@ class EventBus:
             logger.warning(f"Service '{service_name}' already registered for plugin '{plugin_name}'")
             return False
 
-        is_async = getattr(method, "_is_async")
+        is_async = hasattr(method, "_is_async") and getattr(method, "_is_async")
         self.services[plugin_name][service_name] = ServiceInfo(method, is_async)
         logger.info(f"Registered service '{service_name}' ({'async' if is_async else 'sync'}) for plugin '{plugin_name}'")
         return True

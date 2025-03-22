@@ -75,7 +75,7 @@ class Plugin(ABC):
 
         success = self.event_bus.register_service(self.name, service_name, method)
         if success:
-            is_async = getattr(method, "_is_async")
+            is_async = hasattr(method, "_is_async") and getattr(method, "_is_async")
             self.registered_services.append(service_name)
             self.logger.debug(f"Registered service '{service_name}' ({'async' if is_async else 'sync'})")
         return success

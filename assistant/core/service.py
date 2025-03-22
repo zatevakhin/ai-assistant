@@ -10,22 +10,31 @@ def service(func: F) -> F: ...
 
 # Second overload: when used as @service() or @service("name")
 @overload
+def service(name: str) -> Callable[[F], F]: ...
+
+# Third overload: when used as @service(name="name")
+@overload
 def service(*, name: Optional[str] = None) -> Callable[[F], F]: ...
 
-def service(func: Optional[F] = None, *, name: Optional[str] = None) -> Any:
+def service(func: Any = None, *, name: Optional[str] = None) -> Any:
     """
     Decorator to mark a plugin method as an RPC service.
 
-    Can be used as @service or @service(name="custom_name")
+    Can be used as @service, @service("custom_name"), or @service(name="custom_name")
 
     Args:
-        func: The function to decorate (when used as @service)
+        func: The function to decorate (when used as @service) or the custom name (when used as @service("custom_name"))
         name: Optional custom name for the service (when used as @service(name="custom_name")).
               If not provided, the function name is used.
 
     Returns:
         The decorated function with service metadata attached.
     """
+    # Check if first argument is a string (used as @service("custom_name"))
+    if isinstance(func, str):
+        name = func
+        func = None
+
     def decorator(fn: F) -> F:
         @wraps(fn)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
