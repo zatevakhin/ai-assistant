@@ -1,6 +1,12 @@
-import logging
+from datetime import datetime
+from functools import partial
+
+from pydantic import BaseModel, Field
+from pymumble_py3.channels import Channel
+from pymumble_py3.soundqueue import SoundChunk
+from pymumble_py3.users import User
 from assistant.core import Plugin, service
-from typing import List
+from typing import Dict, List
 from numpy.typing import NDArray
 import numpy as np
 import threading
@@ -13,6 +19,7 @@ from pymumble_py3.callbacks import (
     PYMUMBLE_CLBK_SOUNDRECEIVED,
     PYMUMBLE_CLBK_CONNECTED,
     PYMUMBLE_CLBK_DISCONNECTED,
+    PYMUMBLE_CLBK_USERUPDATED,
 )
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from assistant.config import (
@@ -30,6 +37,14 @@ from assistant.components.audio import AudioBufferTransformer, chop_audio
 from assistant.components.synthesis import Sentence
 from . import events
 
+
+class AudioChunk(BaseModel):
+    source: str
+    data: NDArray[np.float32] = Field(repr=False)
+    timestamp: datetime = Field(default_factory=datetime.now)
+
+    class Config:
+        arbitrary_types_allowed=True
 
 class MumbleInterface(Plugin):
     @property
@@ -49,6 +64,7 @@ class MumbleInterface(Plugin):
 
     def initialize(self) -> None:
         super().initialize()
+        # self.logger.setLevel(logging.DEBUG)
 
         # TODO: Get or create
         self.client = Mumble(
@@ -67,16 +83,13 @@ class MumbleInterface(Plugin):
         self.is_playback_done = threading.Event()
         self.is_playback_in_progress = threading.Event()
 
-        self.buffer_transformer = AudioBufferTransformer(
-            self.on_sound,
-            SPEECH_PIPELINE_SAMPLERATE,
-            SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
-        )
+        self.buffer_transformer_per_source: Dict[str, AudioBufferTransformer] = {}
 
         self.client.callbacks.set_callback(
-            PYMUMBLE_CLBK_SOUNDRECEIVED, lambda _, chunk: self.buffer_transformer(chunk)
+            PYMUMBLE_CLBK_SOUNDRECEIVED, self.on_sound_from_source
         )
         self.client.callbacks.set_callback(PYMUMBLE_CLBK_CONNECTED, self.on_connect)
+        self.client.callbacks.set_callback(PYMUMBLE_CLBK_USERUPDATED, self.on_user_updated)
         self.client.callbacks.set_callback(
             PYMUMBLE_CLBK_DISCONNECTED, self.on_disconnect
         )
@@ -89,10 +102,37 @@ class MumbleInterface(Plugin):
 
         if MUMBLE_SERVER_CHANNEL:
             if channel := self.client.channels.find_by_name(MUMBLE_SERVER_CHANNEL):
+                channel: Channel = channel
                 channel.move_in()
+
+        for session in self.client.my_channel().get_users():
+            user: User = self.client.users[session["session"]]
+            self.add_buffer_transformer_for_source(user)
 
         self.event_bus.subscribe(events.MUMBLE_AUDIO_PLAY, self.on_play)
         self.logger.info(f"Plugin '{self.name}' initialized and ready")
+
+    def add_buffer_transformer_for_source(self, source: User) -> bool:
+        username = source.get_property("name")
+        assert username is not None
+
+        if username == ASSISTANT_NAME:
+            self.logger.info(f"Ignored source '{username}', because its assistant.")
+            return False
+
+        if username in self.buffer_transformer_per_source:
+            self.logger.info(f"Ignored source '{username}', because its have buffer transformer.")
+            return False
+
+        self.buffer_transformer_per_source[username] = AudioBufferTransformer(
+            partial(self.on_sound, source),
+            SPEECH_PIPELINE_SAMPLERATE,
+            SPEECH_PIPELINE_BUFFER_SIZE_MILIS
+        )
+
+        self.logger.info(f"Added buffer transformer for source '{username}'.")
+
+        return True
 
     def shutdown(self) -> None:
         super().shutdown()
@@ -109,9 +149,24 @@ class MumbleInterface(Plugin):
         self.is_connected.clear()
         self.event_bus.publish(events.MUMBLE_CLIENT_DISCONNECTED, None)
 
-    def on_sound(self, sound: NDArray[np.float32]):
-        self.logger.debug(f"{type(sound)}, {sound.flags.writeable}")
-        self.event_bus.publish(events.MUMBLE_AUDIO_CHUNK, sound)
+    def on_user_updated(self, session, attributes):
+        self.logger.info(f"on_user_updated({session}, {attributes})")
+        my_channel = self.client.my_channel().get("channel_id")
+
+        if my_channel == session.get("channel_id"):
+            user: User = self.client.users[session["session"]]
+            self.add_buffer_transformer_for_source(user)
+
+    def on_sound_from_source(self, source: dict, chunk: SoundChunk):
+        username = source.get("name", None)
+        assert username is not None
+
+        self.buffer_transformer_per_source[username](chunk)
+
+    def on_sound(self, user: User, sound: NDArray[np.float32]):
+        self.logger.debug(f"{type(sound)}, {user}")
+        username = str(user.get_property("name"))
+        self.event_bus.publish(events.MUMBLE_AUDIO_CHUNK, AudioChunk(source=username, data=sound))
 
     def on_play(self, sentence: Sentence):
         self.logger.info(f"> on_play('{sentence.text}')")
