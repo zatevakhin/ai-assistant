@@ -1,57 +1,29 @@
 import time
 import logging
 from rich.logging import RichHandler
-from assistant.components import (
-    VadProcess,
-    MumbleProcess,
-    SpeechTranscriberProcess,
-    LlmInferenceProcess,
-    SpeechSynthesisProcess,
-    EventBus,
-    InterruptOr
-)
 
+from assistant.core import PluginManager
 
-logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[RichHandler()])
+logging.basicConfig(level=logging.WARNING, format="%(message)s", handlers=[RichHandler()])
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
-class VoiceAssistant:
-    def __init__(self) -> None:
-        self.event_bus = EventBus()
+def main():
+    manager = PluginManager()
+    logger.info("Initializing plugin system")
+    manager.load_plugins()
+    manager.initialize_plugins()
 
-        self.mumble = MumbleProcess(self.event_bus)
-        self.vad = VadProcess(self.event_bus)
-        # TODO: Combine speech input if there is not a big delta.
-        self.transcriber = SpeechTranscriberProcess(self.event_bus)
-        # TODO: Consider to add interrupt manager process, that will evaluate if interruption needed or not.
-        self.interruptor = InterruptOr(self.event_bus)
-        self.llm_inference = LlmInferenceProcess(self.event_bus)
-        self.speech_synthesis = SpeechSynthesisProcess(self.event_bus)
+    logger.info("Yolooooooo")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("", end="\r")
+        logger.info("Manually interrupted...")
 
-    def run(self) -> None:
-        self.mumble.run()
-        self.vad.run()
-        self.transcriber.run()
-        self.interruptor.run()
-        self.llm_inference.run()
-        self.speech_synthesis.run()
+    logger.info("Shutting down plugin system")
+    manager.shutdown_plugins()
 
-        time.sleep(600)
-
-        self.mumble.stop()
-        self.transcriber.stop()
-        self.interruptor.stop()
-        self.llm_inference.stop()
-        self.speech_synthesis.stop()
-        self.vad.stop()
-
-
-
-def main() -> None:
-    logger.info("Initializing Voice Assistant ...")
-    assistant = VoiceAssistant()
-    assistant.run()
-
-
-if __name__ == "__main__":
+if "__main__" == __name__:
     main()
