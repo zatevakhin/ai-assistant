@@ -1,6 +1,9 @@
 # Docker Data
 data/*
 
+# temporary recording files for debug
+.recordings/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

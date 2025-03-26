@@ -9,13 +9,10 @@ SPEECH_PIPELINE_BUFFER_SIZE_MILIS = 32
 MUMBLE_SERVER_HOST = os.environ.get("MUMBLE_SERVER_HOST", "127.0.0.1")
 MUMBLE_SERVER_PORT = int(os.environ.get("MUMBLE_SERVER_PORT", 64738))
 MUMBLE_SERVER_PASSWORD = os.environ.get("MUMBLE_SERVER_PASSWORD", "")
+MUMBLE_SERVER_CHANNEL = os.environ.get("MUMBLE_SERVER_CHANNEL", None)
 
-WHISPER_MODELS_LOCATION = os.environ.get(
-    "WHISPER_MODELS_LOCATION", "data/whisper-models"
-)
-WHISPER_MODEL_NAME = os.environ.get("WHISPER_MODEL_NAME", "tiny.en")
-WHISPER_USE_DEVICE = os.environ.get("WHISPER_USE_DEVICE", "cpu")
-WHISPER_USE_COMPUTE_TYPE = os.environ.get("WHISPER_USE_COMPUTE_TYPE", "int8")
+WHISPERX_API_URL = os.environ.get("WHISPERX_API_URL", "http://localhost:8000")
+WHISPERX_MODEL_NAME = os.environ.get("WHISPERX_MODEL_NAME", "base")
 
 ASSISTANT_NAME = os.environ.get("ASSISTANT_NAME", "Aya")
 ASSISTANT_BREAK_ON_TOKENS = [".", ",", "!", "?", ";", ":", "\n"]
@@ -28,7 +25,6 @@ OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 OLLAMA_LLM_STOP_TOKENS = [f"{ASSISTANT_NAME}:", f"{ASSISTANT_NAME}:".lower()]
 OLLAMA_LLM_TEMPERATURE = int(os.environ.get("OLLAMA_LLM_TEMPERATURE", 0.2))
 OLLAMA_MODEL_KEEP_ALIVE = os.environ.get("OLLAMA_MODEL_KEEP_ALIVE", "1h")
-
 
 INITIAL_SYSTEM_PROMPT = f"You are a helpful AI assistant. Your name is {ASSISTANT_NAME}. Your answers always short and concise."
 INTERRUPT_PROMPT = f"Note, {ASSISTANT_NAME}, you were interrupted by a user with previous message."
