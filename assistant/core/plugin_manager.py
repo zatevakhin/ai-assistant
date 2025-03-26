@@ -31,7 +31,8 @@ class PluginManager:
 
                         try:
                             module = importlib.import_module(module_name)
-                        except ImportError:
+                        except ImportError as e:
+                            self.logger.warning(f"{e}")
                             self.logger.debug(f"No plugin.py in '{package_name}', trying __init__")
                             module = importlib.import_module(package_name)
 
