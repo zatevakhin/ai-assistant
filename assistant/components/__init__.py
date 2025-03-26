@@ -1,4 +1,3 @@
-from .mumble import MumbleProcess
 from .vad import VadProcess
 from .transcriber import SpeechTranscriberProcess, TranscribedSegment
 from .llm import LlmInferenceProcess
