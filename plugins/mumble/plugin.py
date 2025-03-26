@@ -13,6 +13,7 @@ import threading
 from queue import Queue
 import reactivex as rx
 from reactivex import operators as ops
+from time import sleep
 
 from pymumble_py3 import Mumble
 from pymumble_py3.callbacks import (
@@ -104,6 +105,8 @@ class MumbleInterface(Plugin):
             if channel := self.client.channels.find_by_name(MUMBLE_SERVER_CHANNEL):
                 channel: Channel = channel
                 channel.move_in()
+                # NOTE: Need to wait a bit before getting list of users on channel.
+                sleep(1)
 
         for session in self.client.my_channel().get_users():
             user: User = self.client.users[session["session"]]

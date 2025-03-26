@@ -64,6 +64,15 @@ def controlled_area(callback: Callable, in_event: Any, out_event: Any, measure_t
     callback(out_event)
 
 
+
+@contextmanager
+def event_context(e: threading.Event):
+    try:
+        e.set()
+        yield e
+    finally:
+        e.clear()
+
 def ensure_model_exists(base_url: str, model: str):
     o_client = Client(base_url)
     models = o_client.list().get("models")
