@@ -7,6 +7,8 @@ from assistant.config import SPEECH_PIPELINE_SAMPLERATE, WHISPERX_API_URL, WHISP
 import soundfile as sf
 import numpy as np
 
+from .types import Transcript
+
 class TranscriberService(Plugin):
     @property
     def version(self) -> str:
@@ -47,7 +49,7 @@ class TranscriberService(Plugin):
             if not response.status_code == 200:
                 raise requests.exceptions.HTTPError(f"Transcription failed with status code: {response.status_code}")
 
-            return response.json()
+            return Transcript.model_validate(response.json())
 
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Failed to process transcription request: {str(e)}")
