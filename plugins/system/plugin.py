@@ -34,7 +34,7 @@ class SystemIII(Plugin):
     def on_speech(self, source: str, segment: SpeechSegment):
         self.logger.info(f"> on_speech({type(segment)})")
 
-        _, future = self.call_service_async("transcriber_svc", "transcribe_speech", segment)
+        _, future = self.call_service_async("transcriber", "transcribe_speech", segment)
         future.add_done_callback(self.on_transcription_complete)
 
 
