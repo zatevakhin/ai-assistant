@@ -6,7 +6,7 @@ from pymumble_py3.channels import Channel
 from pymumble_py3.soundqueue import SoundChunk
 from pymumble_py3.users import User
 from assistant.core import Plugin, service
-from typing import Dict, List
+from typing import Any, Dict, List
 from numpy.typing import NDArray
 import numpy as np
 import threading
@@ -33,11 +33,14 @@ from assistant.config import (
     SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
 )
 
-from assistant.components.util import observe
-from assistant.components.audio import AudioBufferTransformer, chop_audio
-from assistant.components.synthesis import Sentence
+from assistant.utils import observe
+from assistant.utils import AudioBufferTransformer, chop_audio
 from . import events
 
+class Sentence(BaseModel):
+    text: str
+    audio: Any
+    length: float
 
 class AudioChunk(BaseModel):
     source: str

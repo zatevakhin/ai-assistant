@@ -1,7 +1,7 @@
 from queue import Queue
 from faster_whisper import WhisperModel
-from assistant.components.util import observe
-from assistant.core import Plugin
+from assistant.utils import observe
+from assistant.core import Plugin, EventBus
 from typing import List
 from voice_pulse import SpeechSegment
 
@@ -18,6 +18,11 @@ from plugins.vad.events import VAD_SPEECH_DETECT
 
 
 class WhisperTranscriber(Plugin):
+
+    def __init__(self, name: str, event_bus: EventBus):
+        super().__init__(name, event_bus)
+        self.enabled = False
+
     @property
     def version(self) -> str:
         return "0.0.1"
@@ -68,13 +73,13 @@ class WhisperTranscriber(Plugin):
         segments, info = self.whisper.transcribe(segment.speech)
         text = "".join(map(lambda s: s.text, filter(lambda s: s.text, segments))).strip()
 
-        segment = TranscribedSegment(
+        transcribed = TranscribedSegment(
             text=text,
             language=info.language,
             probability=info.language_probability,
         )
 
-        self.logger.info(f"> on_transcribe({type(segment)}) -> '{segment.text}'")
-        self.event_bus.publish(events.TRANSCRIPTION_SEGMENT_DONE, segment)
+        self.logger.info(f"> on_transcribe({type(transcribed)}) -> '{transcribed.text}'")
+        self.event_bus.publish(events.TRANSCRIPTION_SEGMENT_DONE, transcribed)
 
 
