@@ -8,8 +8,8 @@ import os
 from . import events
 from plugins.vad.events import VAD_SPEECH_DETECT
 
-class SpeechRecorder(Plugin):
 
+class SpeechRecorder(Plugin):
     def __init__(self, name: str, event_bus: EventBus):
         super().__init__(name, event_bus)
         # NOTE: Debug plugin, don't use in prod.
@@ -48,6 +48,4 @@ class SpeechRecorder(Plugin):
 
     @service
     async def store_segment(self, segment: SpeechSegment):
-
         self.logger.info(f"{self.name} > on_speech({type(segment)})")
-

@@ -1,6 +1,7 @@
 """
 Tests for the EventBus component.
 """
+
 import pytest
 from unittest.mock import MagicMock
 
@@ -12,6 +13,7 @@ from assistant.core.service import service
 def event_bus():
     """Create a fresh EventBus instance for each test."""
     return EventBus()
+
 
 class TestEventRegistration:
     """Test event registration and subscription."""
@@ -167,16 +169,16 @@ class TestServiceDecorator:
         instance = TestClass()
 
         # Check sync method
-        assert hasattr(instance.sync_method, '_is_service')
+        assert hasattr(instance.sync_method, "_is_service")
         assert getattr(instance.sync_method, "_is_service") is True
 
-        assert hasattr(instance.sync_method, '_is_async')
+        assert hasattr(instance.sync_method, "_is_async")
         assert getattr(instance.sync_method, "_is_async") is False
 
         # Check async method
-        assert hasattr(instance.async_method, '_is_service')
+        assert hasattr(instance.async_method, "_is_service")
         assert getattr(instance.async_method, "_is_service") is True
-        assert hasattr(instance.async_method, '_is_async')
+        assert hasattr(instance.async_method, "_is_async")
         assert getattr(instance.async_method, "_is_async") is True
 
     def test_service_decorator_custom_name(self):
@@ -190,4 +192,3 @@ class TestServiceDecorator:
         instance = TestClass()
         assert hasattr(instance.method, "_service_name") is True
         assert getattr(instance.method, "_service_name") == "custom_name"
-

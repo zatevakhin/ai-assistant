@@ -12,10 +12,9 @@ def generate_response(prompt, model=OLLAMA_LLM):
     try:
         client = ollama.Client(host=OLLAMA_BASE_URL)
         response = client.chat(
-            model=model,
-            messages=[{'role': 'user', 'content': prompt}]
+            model=model, messages=[{"role": "user", "content": prompt}]
         )
-        return {"success": True, "response": response['message']['content']}
+        return {"success": True, "response": response["message"]["content"]}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -29,9 +28,13 @@ def test_single_request():
 
 def test_parallel_requests():
     num_requests = 3
-    prompts = [f"Write a short definition of AI (request {i})" for i in range(num_requests)]
+    prompts = [
+        f"Write a short definition of AI (request {i})" for i in range(num_requests)
+    ]
 
-    print(f"\nRunning {num_requests} parallel requests to {OLLAMA_BASE_URL} using {OLLAMA_LLM}")
+    print(
+        f"\nRunning {num_requests} parallel requests to {OLLAMA_BASE_URL} using {OLLAMA_LLM}"
+    )
     start_time = time.time()
 
     results = []
@@ -50,7 +53,7 @@ def test_parallel_requests():
 
     assert successful == num_requests
 
+
 if __name__ == "__main__":
     print(f"Testing Ollama at {OLLAMA_BASE_URL} with model {OLLAMA_LLM}")
     pytest.main(["-v", __file__])
-

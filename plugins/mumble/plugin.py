@@ -33,10 +33,12 @@ from assistant.utils import observe
 from assistant.utils import AudioBufferTransformer, chop_audio
 from . import events
 
+
 class Sentence(BaseModel):
     text: str
     audio: Any
     length: float
+
 
 class AudioChunk(BaseModel):
     source: str
@@ -44,7 +46,8 @@ class AudioChunk(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
 
     class Config:
-        arbitrary_types_allowed=True
+        arbitrary_types_allowed = True
+
 
 class MumbleInterface(Plugin):
     @property
@@ -94,7 +97,9 @@ class MumbleInterface(Plugin):
             PYMUMBLE_CLBK_SOUNDRECEIVED, self.on_sound_from_source
         )
         self.client.callbacks.set_callback(PYMUMBLE_CLBK_CONNECTED, self.on_connect)
-        self.client.callbacks.set_callback(PYMUMBLE_CLBK_USERUPDATED, self.on_user_updated)
+        self.client.callbacks.set_callback(
+            PYMUMBLE_CLBK_USERUPDATED, self.on_user_updated
+        )
         self.client.callbacks.set_callback(
             PYMUMBLE_CLBK_DISCONNECTED, self.on_disconnect
         )
@@ -103,7 +108,7 @@ class MumbleInterface(Plugin):
         self.logger.info(
             f"Plugin '{self.name}' connecting to server: '{mumble_host}:{mumble_port}'"
         )
-        self.client.is_ready() # waits connection
+        self.client.is_ready()  # waits connection
 
         if mumble_channel:
             if channel := self.client.channels.find_by_name(mumble_channel):
@@ -128,13 +133,15 @@ class MumbleInterface(Plugin):
             return False
 
         if username in self.buffer_transformer_per_source:
-            self.logger.info(f"Ignored source '{username}', because its have buffer transformer.")
+            self.logger.info(
+                f"Ignored source '{username}', because its have buffer transformer."
+            )
             return False
 
         self.buffer_transformer_per_source[username] = AudioBufferTransformer(
             partial(self.on_sound, source),
             SPEECH_PIPELINE_SAMPLERATE,
-            SPEECH_PIPELINE_BUFFER_SIZE_MILIS
+            SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
         )
 
         self.logger.info(f"Added buffer transformer for source '{username}'.")
@@ -173,7 +180,9 @@ class MumbleInterface(Plugin):
     def on_sound(self, user: User, sound: NDArray[np.float32]):
         self.logger.debug(f"{type(sound)}, {user}")
         username = str(user.get_property("name"))
-        self.event_bus.publish(events.MUMBLE_AUDIO_CHUNK, AudioChunk(source=username, data=sound))
+        self.event_bus.publish(
+            events.MUMBLE_AUDIO_CHUNK, AudioChunk(source=username, data=sound)
+        )
 
     def on_play(self, sentence: Sentence):
         self.logger.info(f"> on_play('{sentence.text}')")
@@ -203,14 +212,18 @@ class MumbleInterface(Plugin):
             self.is_playback_done.set()
             self.event_bus.publish(events.MUMBLE_PLAYBACK_DONE, None)
 
-        _ = rx.zip(
-            rx.interval(0.020),
-            rx.from_iterable(chop_audio(sentence.audio, PYMUMBLE_SAMPLERATE, 20)),
-        ).pipe(
-            ops.map(lambda x: x[1].tobytes()),
-            ops.do_action(self.client.sound_output.add_sound),
-            ops.finally_action(on_interrupt),
-        ).subscribe(on_completed=on_playback_complete)
+        _ = (
+            rx.zip(
+                rx.interval(0.020),
+                rx.from_iterable(chop_audio(sentence.audio, PYMUMBLE_SAMPLERATE, 20)),
+            )
+            .pipe(
+                ops.map(lambda x: x[1].tobytes()),
+                ops.do_action(self.client.sound_output.add_sound),
+                ops.finally_action(on_interrupt),
+            )
+            .subscribe(on_completed=on_playback_complete)
+        )
 
         self.event_bus.publish(events.MUMBLE_PLAYBACK_IN_PROGRESS, sentence)
         self.is_playback_done.wait()

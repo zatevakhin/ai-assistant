@@ -29,9 +29,11 @@ def mumble_process(event_bus):
     yield process
     process.stop()
 
+
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_server_is_up(mumble_process: MumbleProcess):
     assert mumble_process.is_alive()
+
 
 def test_connected_to_server(mumble_process: MumbleProcess):
     assert mumble_process.is_connected()
@@ -41,9 +43,11 @@ def test_connected_to_server(mumble_process: MumbleProcess):
 def test_play_sound_once(mumble_process: MumbleProcess):
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
     text = "Why is the sky blue?"
-    speech, samplerate  = tts.synthesize_stream(text)
+    speech, samplerate = tts.synthesize_stream(text)
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    sentence = Sentence(text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE))
+    sentence = Sentence(
+        text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE)
+    )
     mumble_process.on_play(sentence)
     assert not mumble_process.is_playing()
     assert mumble_process.get_number_of_items_to_play()
@@ -58,9 +62,11 @@ def test_play_sound_once(mumble_process: MumbleProcess):
 def test_play_sound_twice(mumble_process: MumbleProcess):
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
     text = "Why is the sky blue?"
-    speech, samplerate  = tts.synthesize_stream(text)
+    speech, samplerate = tts.synthesize_stream(text)
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    sentence = Sentence(text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE))
+    sentence = Sentence(
+        text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE)
+    )
 
     mumble_process.on_play(sentence)
     mumble_process.on_play(sentence)
@@ -78,9 +84,11 @@ def test_play_sound_twice(mumble_process: MumbleProcess):
 def test_receive_sound(event_bus: EventBus):
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
     text = "Test, Test, Test!"
-    speech, samplerate  = tts.synthesize_stream(text)
+    speech, samplerate = tts.synthesize_stream(text)
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    sentence = Sentence(text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE))
+    sentence = Sentence(
+        text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE)
+    )
 
     sound_chunks = Queue()
 
@@ -98,14 +106,17 @@ def test_receive_sound(event_bus: EventBus):
 
     assert sound_chunks.qsize() > 0
 
+
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_play_sound_with_interrupt(mumble_process: MumbleProcess, event_bus: EventBus):
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
 
     text = "Try to interrupt me!"
-    speech, samplerate  = tts.synthesize_stream(text)
+    speech, samplerate = tts.synthesize_stream(text)
     audio = resampy.resample(speech, samplerate, PYMUMBLE_SAMPLERATE).astype(np.int16)
-    sentence = Sentence(text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE))
+    sentence = Sentence(
+        text=text, audio=audio, length=audio_length(audio, PYMUMBLE_SAMPLERATE)
+    )
 
     mumble_process.on_play(sentence)
 
@@ -121,4 +132,3 @@ def test_play_sound_with_interrupt(mumble_process: MumbleProcess, event_bus: Eve
     assert not mumble_process.is_interrupted()
     assert not mumble_process.is_playing()
     time.sleep(5)
-

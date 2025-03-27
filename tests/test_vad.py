@@ -8,15 +8,21 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from assistant.components import VadProcess, EventBus, EventType
-from assistant.config import PIPER_TTS_MODEL, PIPER_MODELS_LOCATION, SPEECH_PIPELINE_BUFFER_SIZE_MILIS
+from assistant.config import (
+    PIPER_TTS_MODEL,
+    PIPER_MODELS_LOCATION,
+    SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
+)
 from voice_forge import PiperTts
 from assistant.components.audio import chop_audio, enrich_with_silence
 import numpy as np
+
 
 @pytest.fixture(scope="module")
 def event_bus():
     eb = EventBus()
     yield eb
+
 
 @pytest.fixture(scope="module")
 def vad_process(event_bus: EventBus):
@@ -29,7 +35,7 @@ def vad_process(event_bus: EventBus):
 
 def test_is_speech(_: VadProcess, event_bus: EventBus):
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
-    speech, samplerate  = tts.synthesize_stream("Hello, World!")
+    speech, samplerate = tts.synthesize_stream("Hello, World!")
     audio = resampy.resample(speech.astype(np.float32) / 32768.0, samplerate, 16000)
     audio = enrich_with_silence(audio, 16000, 0.2, 1.0)
 
@@ -47,5 +53,3 @@ def test_is_speech(_: VadProcess, event_bus: EventBus):
     sleep(3)
 
     assert speech_queue.qsize() > 0
-
-

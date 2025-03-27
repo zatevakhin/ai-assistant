@@ -1,6 +1,7 @@
 """
 Tests for the Plugin and PluginManager components.
 """
+
 import asyncio
 import pytest
 from unittest.mock import MagicMock, patch, call
@@ -11,6 +12,7 @@ from assistant.core.service import service
 
 
 # --- Plugin class implementations for testing ---
+
 
 class ExamplePlugin(Plugin):
     """A basic test plugin implementation."""
@@ -79,6 +81,7 @@ class CircularPlugin2(Plugin):
 
 # --- Fixtures ---
 
+
 @pytest.fixture
 def event_bus():
     """Create a fresh EventBus instance for each test."""
@@ -125,6 +128,7 @@ def populated_plugin_manager(plugin_manager, test_plugin, dependent_plugin):
 
 # --- Test Plugin class ---
 
+
 class TestPluginClass:
     """Test the basic Plugin class functionality."""
 
@@ -138,7 +142,9 @@ class TestPluginClass:
     def test_plugin_register_events(self, test_plugin):
         """Test event registration."""
         # Mock the event_bus.register_events method
-        test_plugin.event_bus.register_events = MagicMock(return_value=["test.event1", "test.event2"])
+        test_plugin.event_bus.register_events = MagicMock(
+            return_value=["test.event1", "test.event2"]
+        )
 
         test_plugin.register_events()
         test_plugin.event_bus.register_events.assert_called_once_with(
@@ -160,7 +166,9 @@ class TestPluginClass:
 
         # Test successful publish
         test_plugin.publish_event("test.event1", {"key": "value"})
-        test_plugin.event_bus.publish.assert_called_once_with("test.event1", {"key": "value"})
+        test_plugin.event_bus.publish.assert_called_once_with(
+            "test.event1", {"key": "value"}
+        )
 
         # Test publishing unregistered event
         test_plugin.event_bus.publish.reset_mock()
@@ -208,6 +216,7 @@ class TestPluginClass:
 
 # --- Test Plugin RPC functionality ---
 
+
 class TestPluginRPC:
     """Test the Plugin RPC functionality."""
 
@@ -235,7 +244,9 @@ class TestPluginRPC:
         # Mock the event_bus.call_service method
         test_plugin.event_bus.call_service = MagicMock(return_value="service result")
 
-        result = test_plugin.call_service("other_plugin", "some_service", "arg1", kwarg1="value")
+        result = test_plugin.call_service(
+            "other_plugin", "some_service", "arg1", kwarg1="value"
+        )
         assert result == "service result"
         test_plugin.event_bus.call_service.assert_called_once_with(
             "other_plugin", "some_service", "arg1", kwarg1="value"
@@ -251,9 +262,13 @@ class TestPluginRPC:
         """Test calling a service asynchronously."""
         # Mock the event_bus.call_service_async method
         mock_future = MagicMock()
-        test_plugin.event_bus.call_service_async = MagicMock(return_value=("request-id", mock_future))
+        test_plugin.event_bus.call_service_async = MagicMock(
+            return_value=("request-id", mock_future)
+        )
 
-        request_id, future = test_plugin.call_service_async("other_plugin", "some_service", "arg1")
+        request_id, future = test_plugin.call_service_async(
+            "other_plugin", "some_service", "arg1"
+        )
         assert request_id == "request-id"
         assert future == mock_future
         test_plugin.event_bus.call_service_async.assert_called_once_with(
@@ -278,17 +293,21 @@ class TestPluginRPC:
         assert test_plugin.register_service.call_count == 2
         calls = [
             call("test_service", test_plugin.test_service),
-            call("async_service", test_plugin.async_service)
+            call("async_service", test_plugin.async_service),
         ]
         test_plugin.register_service.assert_has_calls(calls, any_order=True)
 
     def test_get_available_services(self, test_plugin):
         """Test getting available services from another plugin."""
-        test_plugin.event_bus.get_plugin_services = MagicMock(return_value=["service1", "service2"])
+        test_plugin.event_bus.get_plugin_services = MagicMock(
+            return_value=["service1", "service2"]
+        )
 
         services = test_plugin.get_available_services("other_plugin")
         assert services == ["service1", "service2"]
-        test_plugin.event_bus.get_plugin_services.assert_called_once_with("other_plugin")
+        test_plugin.event_bus.get_plugin_services.assert_called_once_with(
+            "other_plugin"
+        )
 
     def test_get_call_status(self, test_plugin):
         """Test getting the status of an async call."""
@@ -316,6 +335,7 @@ class TestPluginRPC:
 
 
 # --- Test PluginManager class ---
+
 
 class TestPluginManager:
     """Test the PluginManager class."""
@@ -357,7 +377,9 @@ class TestPluginManager:
     def test_resolve_dependencies_missing(self, populated_plugin_manager):
         """Test resolving dependencies with a missing dependency."""
         # Add a plugin with a missing dependency
-        missing_dep_plugin = ExamplePlugin("missing_dep_plugin", populated_plugin_manager.event_bus)
+        missing_dep_plugin = ExamplePlugin(
+            "missing_dep_plugin", populated_plugin_manager.event_bus
+        )
         missing_dep_plugin.add_dependency("nonexistent")
         populated_plugin_manager.plugins["missing_dep_plugin"] = missing_dep_plugin
 
@@ -369,7 +391,9 @@ class TestPluginManager:
         # Verify the plugin was disabled due to missing dependency
         missing_dep_plugin.disable.assert_called_once()
 
-    def test_resolve_dependencies_circular(self, plugin_manager, circular_plugin1, circular_plugin2):
+    def test_resolve_dependencies_circular(
+        self, plugin_manager, circular_plugin1, circular_plugin2
+    ):
         """Test resolving circular dependencies."""
         # Add plugins with circular dependencies
         plugin_manager.plugins["circular1"] = circular_plugin1
@@ -388,7 +412,9 @@ class TestPluginManager:
         """Test initializing all plugins."""
         # Mock methods
         populated_plugin_manager.register_plugin_events = MagicMock()
-        populated_plugin_manager.resolve_dependencies = MagicMock(return_value=["test_plugin", "dependent_plugin"])
+        populated_plugin_manager.resolve_dependencies = MagicMock(
+            return_value=["test_plugin", "dependent_plugin"]
+        )
 
         for plugin in populated_plugin_manager.plugins.values():
             plugin.initialize = MagicMock()
@@ -407,7 +433,9 @@ class TestPluginManager:
     def test_shutdown_plugins(self, populated_plugin_manager):
         """Test shutting down all plugins."""
         # Mock methods
-        populated_plugin_manager.resolve_dependencies = MagicMock(return_value=["test_plugin", "dependent_plugin"])
+        populated_plugin_manager.resolve_dependencies = MagicMock(
+            return_value=["test_plugin", "dependent_plugin"]
+        )
 
         for plugin in populated_plugin_manager.plugins.values():
             plugin.shutdown = MagicMock()
@@ -434,7 +462,9 @@ class TestPluginManager:
 
         # Mock other methods to isolate the test
         populated_plugin_manager.register_plugin_events = MagicMock()
-        populated_plugin_manager.resolve_dependencies = MagicMock(return_value=["test_plugin"])
+        populated_plugin_manager.resolve_dependencies = MagicMock(
+            return_value=["test_plugin"]
+        )
 
         # Initialize plugins
         populated_plugin_manager.initialize_plugins()
@@ -452,8 +482,10 @@ class TestPluginManager:
         mock_plugins = [("plugin1", ExamplePlugin), ("plugin2", DependentPlugin)]
         plugin_manager.discover_plugins = MagicMock(return_value=mock_plugins)
 
-        with patch.object(ExamplePlugin, '__init__', return_value=None), \
-             patch.object(DependentPlugin, '__init__', return_value=None):
+        with (
+            patch.object(ExamplePlugin, "__init__", return_value=None),
+            patch.object(DependentPlugin, "__init__", return_value=None),
+        ):
             plugin_manager.load_plugins()
 
         # Verify plugins were loaded
@@ -461,4 +493,3 @@ class TestPluginManager:
         assert "plugin2" in plugin_manager.plugins
 
         plugin_manager.discover_plugins.assert_called_once()
-

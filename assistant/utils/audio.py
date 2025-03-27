@@ -131,7 +131,9 @@ def audio_length(audio_data: np.ndarray, sample_rate: int) -> int:
     return length_in_milliseconds
 
 
-def chop_audio(audio_data: np.ndarray, sample_rate: int, segment_length_ms: int) -> list:
+def chop_audio(
+    audio_data: np.ndarray, sample_rate: int, segment_length_ms: int
+) -> list:
     """
     Chop audio data into segments of given length.
 
@@ -147,14 +149,17 @@ def chop_audio(audio_data: np.ndarray, sample_rate: int, segment_length_ms: int)
     total_segments = len(audio_data) // num_samples_per_segment
 
     # Chop audio into segments
-    segments = [audio_data[i * num_samples_per_segment: (i + 1) * num_samples_per_segment]
-                for i in range(total_segments)]
+    segments = [
+        audio_data[i * num_samples_per_segment : (i + 1) * num_samples_per_segment]
+        for i in range(total_segments)
+    ]
 
     return segments
 
 
-def enrich_with_silence(audio: np.ndarray, samplerate: int, start_sec: float, end_sec: float) -> np.ndarray:
+def enrich_with_silence(
+    audio: np.ndarray, samplerate: int, start_sec: float, end_sec: float
+) -> np.ndarray:
     end = np.zeros(int(samplerate * end_sec), dtype=audio.dtype)
     start = np.zeros(int(samplerate * start_sec), dtype=audio.dtype)
     return np.concatenate((start, audio, end))
-

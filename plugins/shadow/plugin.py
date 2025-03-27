@@ -1,20 +1,20 @@
 from enum import Enum
 import threading
-from langchain.schema import HumanMessage, StrOutputParser, SystemMessage, AIMessage, BaseMessage
+from langchain.schema import (
+    HumanMessage,
+    SystemMessage,
+    BaseMessage,
+)
 from pydantic import BaseModel, Field
 from assistant.core import Plugin, service
-from typing import Any, Dict, List, Optional
+from typing import List
 
 from langchain_ollama import ChatOllama
 from assistant.utils import ensure_model_exists, event_context
 from assistant.config import (
-    OLLAMA_LLM_STOP_TOKENS,
     OLLAMA_LLM_TEMPERATURE,
-    OLLAMA_LLM,
     OLLAMA_BASE_URL,
-    ASSISTANT_BREAK_ON_TOKENS,
     INITIAL_SYSTEM_PROMPT,
-    INTERRUPT_PROMPT,
 )
 
 from plugins.ollama.plugin import StreamToken
@@ -32,9 +32,15 @@ For each chunk, decide between these actions:
 - DISCARD: Discard because it's not important (e.g., filler words, background noise transcription)
 """
 
+
 class ActionDecision(BaseModel):
-    action: str = Field(description="The chosen action ADD_TO_CONTEXT, STORE_IN_MEMORY or DISCARD")
-    reason: str = Field(description="A brief explanation for why this action was chosen")
+    action: str = Field(
+        description="The chosen action ADD_TO_CONTEXT, STORE_IN_MEMORY or DISCARD"
+    )
+    reason: str = Field(
+        description="A brief explanation for why this action was chosen"
+    )
+
 
 class QueryResponse(BaseModel):
     tokens: List[StreamToken] = Field(default_factory=list)
@@ -42,6 +48,7 @@ class QueryResponse(BaseModel):
 
     def add(self, t):
         self.tokens.append(StreamToken(token=t, done=bool(t == "")))
+
 
 class TranscriptionAction(str, Enum):
     ADD_TO_CONTEXT = "ADD_TO_CONTEXT"
@@ -102,11 +109,12 @@ class Shadow(Plugin):
 
             messages = [
                 SystemMessage(content=DECISION_SYSTEM_PROMPT),
-                HumanMessage(content=f"Transcription chunk: \"{combined_context}\"")
+                HumanMessage(content=f'Transcription chunk: "{combined_context}"'),
             ]
 
-
-            decision: ActionDecision = self.llm.with_structured_output(ActionDecision).invoke(messages)
+            decision: ActionDecision = self.llm.with_structured_output(
+                ActionDecision
+            ).invoke(messages)
 
             if decision.action == TranscriptionAction.ADD_TO_CONTEXT:
                 self.context.append(transcription_chunk)
@@ -117,6 +125,3 @@ class Shadow(Plugin):
                 pass
 
             return decision
-
-
-

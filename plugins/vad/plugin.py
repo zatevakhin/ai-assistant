@@ -4,7 +4,13 @@ from assistant.core import Plugin
 from typing import Dict, Final, List
 import reactivex as rx
 from reactivex import operators as ops
-from voice_pulse import ListenerStamped, Config, VadEngine, VadAggressiveness, SpeechSegment
+from voice_pulse import (
+    ListenerStamped,
+    Config,
+    VadEngine,
+    VadAggressiveness,
+    SpeechSegment,
+)
 from voice_pulse.input_sources import CallbackInput
 
 from assistant.config import (
@@ -26,7 +32,7 @@ STREAM_CONFIG: Final = Config(
     vad_aggressiveness=VadAggressiveness.LOW,
     block_duration=SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
     silence_threshold=VAD_SILENCE_THRESHOLD,
-    collect_threshold=8
+    collect_threshold=8,
 )
 
 
@@ -59,25 +65,29 @@ class VadFilter(Plugin):
 
         self.streams[source] = CallbackInput(STREAM_CONFIG.blocksize)
 
-        sub = rx.from_iterable(ListenerStamped(STREAM_CONFIG, self.streams[source])).pipe(
-            ops.finally_action(partial(self.on_stop, source)),
-            ops.subscribe_on(NewThreadScheduler())
-        ).subscribe(partial(self.on_speech_detect_from_source, source))
+        sub = (
+            rx.from_iterable(ListenerStamped(STREAM_CONFIG, self.streams[source]))
+            .pipe(
+                ops.finally_action(partial(self.on_stop, source)),
+                ops.subscribe_on(NewThreadScheduler()),
+            )
+            .subscribe(partial(self.on_speech_detect_from_source, source))
+        )
 
         self.subscriptions.append(sub)
         return self.streams[source]
 
-
-
     def shutdown(self) -> None:
         super().shutdown()
         # TODO: Fix type hints in `voice_pulse`
-        for (_, stream) in self.streams.items():
+        for _, stream in self.streams.items():
             stream.receive_chunk(None)
         self.logger.info(f"Plugin '{self.name}' shutdown done.")
 
     def on_stop(self, source: str):
-        self.logger.warning(f"Plugin '{self.name}' listener for source '{source}' was stopped.")
+        self.logger.warning(
+            f"Plugin '{self.name}' listener for source '{source}' was stopped."
+        )
 
     def on_sound(self, sound: AudioChunk):
         self.logger.debug(f"> on_sound({sound})")
@@ -93,5 +103,3 @@ class VadFilter(Plugin):
         self.logger.info(f"> on_speech_detect('{source}', {type(speech)})")
         # TODO: Add custom type for speech with source
         self.event_bus.publish(events.VAD_SPEECH_DETECT, (source, speech))
-
-

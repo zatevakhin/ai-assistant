@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from uuid import uuid4, UUID
 from datetime import datetime
 
+
 class TranscribedSegment(BaseModel):
     text: str
     language: str
@@ -14,6 +15,7 @@ class TranscribedSegment(BaseModel):
 
 class Word(BaseModel):
     """Word-level data with timestamps"""
+
     word: str
     start: float
     end: float
@@ -21,6 +23,7 @@ class Word(BaseModel):
 
 class Speaker(BaseModel):
     """Speaker information from diarization"""
+
     id: str
     label: str
     total_time: float
@@ -28,6 +31,7 @@ class Speaker(BaseModel):
 
 class Segment(BaseModel):
     """Segment of transcript with timing and speaker information"""
+
     text: str
     start: float
     end: float
@@ -37,10 +41,9 @@ class Segment(BaseModel):
 
 class Transcript(BaseModel):
     """Complete transcript with all metadata"""
+
     transcript: str
     language: str
     duration: float
     speakers: List[Speaker] = Field(default_factory=list)
     segments: List[Segment] = Field(default_factory=list)
-
-

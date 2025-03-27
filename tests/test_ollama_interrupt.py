@@ -8,6 +8,7 @@ import pytest
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_LLM = os.getenv("OLLAMA_LLM", "llama3.1:8b")
 
+
 class StreamingInterruptTest:
     def __init__(self):
         self.interrupted = False
@@ -22,14 +23,14 @@ class StreamingInterruptTest:
             client = ollama.Client(host=OLLAMA_BASE_URL)
             for chunk in client.chat(
                 model=OLLAMA_LLM,
-                messages=[{'role': 'user', 'content': prompt}],
-                stream=True
+                messages=[{"role": "user", "content": prompt}],
+                stream=True,
             ):
                 if self.interrupted:
                     print("\n[Manually interrupted the stream]")
                     break
 
-                content = chunk['message'].get('content', '')
+                content = chunk["message"].get("content", "")
                 if content:
                     sys.stdout.write(content)
                     sys.stdout.flush()
@@ -50,8 +51,7 @@ class StreamingInterruptTest:
 
     def start_streaming(self, prompt):
         self.stream_thread = threading.Thread(
-            target=self.stream_handler,
-            args=(prompt,)
+            target=self.stream_handler, args=(prompt,)
         )
         self.stream_thread.daemon = True
         self.stream_thread.start()
@@ -114,4 +114,3 @@ def test_streaming_completion():
 if __name__ == "__main__":
     print(f"Testing Ollama streaming at {OLLAMA_BASE_URL} with model {OLLAMA_LLM}")
     pytest.main(["-v", __file__])
-

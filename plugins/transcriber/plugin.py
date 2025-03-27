@@ -3,11 +3,16 @@ import requests
 import io
 from assistant.core import Plugin, service
 from voice_pulse import SpeechSegment
-from assistant.config import SPEECH_PIPELINE_SAMPLERATE, WHISPERX_API_URL, WHISPERX_MODEL_NAME
+from assistant.config import (
+    SPEECH_PIPELINE_SAMPLERATE,
+    WHISPERX_API_URL,
+    WHISPERX_MODEL_NAME,
+)
 import soundfile as sf
 import numpy as np
 
 from .types import Transcript
+
 
 class TranscriberService(Plugin):
     @property
@@ -37,22 +42,31 @@ class TranscriberService(Plugin):
 
         try:
             audio = io.BytesIO()
-            sf.write(audio, segment.speech.astype(np.float32), SPEECH_PIPELINE_SAMPLERATE, format="FLAC")
+            sf.write(
+                audio,
+                segment.speech.astype(np.float32),
+                SPEECH_PIPELINE_SAMPLERATE,
+                format="FLAC",
+            )
             audio.seek(0)
 
             response = requests.post(
                 f"{WHISPERX_API_URL}/transcribe",
-                files={"file": ("audio.flac", audio, f"audio/flac")},
-                data={"whisper_model": WHISPERX_MODEL_NAME, "diarize": True, "align_words": True}
+                files={"file": ("audio.flac", audio, "audio/flac")},
+                data={
+                    "whisper_model": WHISPERX_MODEL_NAME,
+                    "diarize": True,
+                    "align_words": True,
+                },
             )
 
             if not response.status_code == 200:
-                raise requests.exceptions.HTTPError(f"Transcription failed with status code: {response.status_code}")
+                raise requests.exceptions.HTTPError(
+                    f"Transcription failed with status code: {response.status_code}"
+                )
 
             return Transcript.model_validate(response.json())
 
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Failed to process transcription request: {str(e)}")
             raise Exception("Transcription failed due to network or connection issues")
-
-

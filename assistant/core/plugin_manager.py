@@ -8,12 +8,15 @@ from .event_bus import EventBus
 from .plugin import Plugin
 from .config_manager import ConfigManager
 
+
 class PluginManager:
     def __init__(self, config_path: str = "config.yaml"):
         self.event_bus = EventBus()
         self.config_manager = ConfigManager(config_path)
         self.plugins: Dict[str, Plugin] = {}
-        self.plugin_dirs = self.config_manager.get_system_config().get("plugins_dir", ["plugins"])
+        self.plugin_dirs = self.config_manager.get_system_config().get(
+            "plugins_dir", ["plugins"]
+        )
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
 
@@ -35,15 +38,21 @@ class PluginManager:
                             module = importlib.import_module(module_name)
                         except ImportError as e:
                             self.logger.warning(f"{e}")
-                            self.logger.debug(f"No plugin.py in '{package_name}', trying __init__")
+                            self.logger.debug(
+                                f"No plugin.py in '{package_name}', trying __init__"
+                            )
                             module = importlib.import_module(package_name)
 
                         for _, cls in inspect.getmembers(module, inspect.isclass):
-                            if (issubclass(cls, Plugin) and
-                                cls is not Plugin and
-                                cls.__module__ == module.__name__):
+                            if (
+                                issubclass(cls, Plugin)
+                                and cls is not Plugin
+                                and cls.__module__ == module.__name__
+                            ):
                                 plugin_classes.append((name, cls))
-                                self.logger.debug(f"Discovered plugin: {name}('{cls.__name__}')")
+                                self.logger.debug(
+                                    f"Discovered plugin: {name}('{cls.__name__}')"
+                                )
                     except Exception as e:
                         self.logger.error(f"Error loading plugin '{name}': {e}")
 
@@ -55,7 +64,9 @@ class PluginManager:
         for name, plugin_class in plugin_classes:
             try:
                 if not self.config_manager.is_plugin_enabled(name):
-                    self.logger.info(f"Plugin '{name}' is disabled in configuration, skipping")
+                    self.logger.info(
+                        f"Plugin '{name}' is disabled in configuration, skipping"
+                    )
                     continue
 
                 plugin_config = self.config_manager.get_plugin_config(name)
@@ -81,7 +92,9 @@ class PluginManager:
         for name, plugin in self.plugins.items():
             for dep in plugin.required_plugins:
                 if dep not in self.plugins:
-                    self.logger.error(f"Plugin '{name}' depends on '{dep}', but it's not loaded")
+                    self.logger.error(
+                        f"Plugin '{name}' depends on '{dep}', but it's not loaded"
+                    )
                     plugin.disable()
 
         # Topological sort for dependency resolution
@@ -151,4 +164,3 @@ class PluginManager:
     def get_plugin(self, name: str) -> Optional[Plugin]:
         """Get a plugin by name."""
         return self.plugins.get(name)
-

@@ -7,7 +7,9 @@ from .event_bus import EventBus
 
 
 class Plugin(ABC):
-    def __init__(self, name: str, event_bus: EventBus, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, name: str, event_bus: EventBus, config: Optional[Dict[str, Any]] = None
+    ):
         self.name = name
         self.event_bus = event_bus
         self.config = config or {}
@@ -53,7 +55,9 @@ class Plugin(ABC):
         """Return the set of required plugin names."""
         return self.dependencies
 
-    def subscribe_to_event(self, event_id: str, callback: Callable[[Any], None]) -> None:
+    def subscribe_to_event(
+        self, event_id: str, callback: Callable[[Any], None]
+    ) -> None:
         """Subscribe to an event with a callback function."""
         subscription = self.event_bus.subscribe(event_id, callback)
         if subscription:
@@ -66,7 +70,9 @@ class Plugin(ABC):
             return
 
         if event_id not in self.registered_events:
-            self.logger.warning(f"Attempting to publish unregistered event: '{event_id}'")
+            self.logger.warning(
+                f"Attempting to publish unregistered event: '{event_id}'"
+            )
             return
 
         self.event_bus.publish(event_id, data)
@@ -82,7 +88,9 @@ class Plugin(ABC):
         if success:
             is_async = hasattr(method, "_is_async") and getattr(method, "_is_async")
             self.registered_services.append(service_name)
-            self.logger.debug(f"Registered service '{service_name}' ({'async' if is_async else 'sync'})")
+            self.logger.debug(
+                f"Registered service '{service_name}' ({'async' if is_async else 'sync'})"
+            )
         return success
 
     def call_service(self, plugin_name: str, service_name: str, *args, **kwargs) -> Any:
@@ -93,12 +101,18 @@ class Plugin(ABC):
             raise RuntimeError(f"Plugin '{self.name}' is disabled")
 
         try:
-            return self.event_bus.call_service(plugin_name, service_name, *args, **kwargs)
+            return self.event_bus.call_service(
+                plugin_name, service_name, *args, **kwargs
+            )
         except Exception as e:
-            self.logger.error(f"Error calling service '{service_name}' on plugin '{plugin_name}': {e}")
+            self.logger.error(
+                f"Error calling service '{service_name}' on plugin '{plugin_name}': {e}"
+            )
             raise
 
-    def call_service_async(self, plugin_name: str, service_name: str, *args, **kwargs) -> Tuple[str, Future]:
+    def call_service_async(
+        self, plugin_name: str, service_name: str, *args, **kwargs
+    ) -> Tuple[str, Future]:
         """
         Asynchronously call a service method on another plugin.
         """
@@ -106,9 +120,13 @@ class Plugin(ABC):
             raise RuntimeError(f"Plugin '{self.name}' is disabled")
 
         try:
-            return self.event_bus.call_service_async(plugin_name, service_name, *args, **kwargs)
+            return self.event_bus.call_service_async(
+                plugin_name, service_name, *args, **kwargs
+            )
         except ValueError as e:
-            self.logger.error(f"Error starting async call to service '{service_name}' on plugin '{plugin_name}': {e}")
+            self.logger.error(
+                f"Error starting async call to service '{service_name}' on plugin '{plugin_name}': {e}"
+            )
             raise
 
     def get_call_status(self, request_id: str) -> Optional[str]:
@@ -140,10 +158,12 @@ class Plugin(ABC):
         Register all methods decorated with @service in this plugin.
         """
         for name, method in inspect.getmembers(self, inspect.ismethod):
-            if hasattr(method, '_is_service'):
-                service_name = getattr(method, '_service_name', name)
+            if hasattr(method, "_is_service"):
+                service_name = getattr(method, "_service_name", name)
                 self.register_service(service_name, method)
-                self.logger.debug(f"Found and registered decorated service: {service_name}")
+                self.logger.debug(
+                    f"Found and registered decorated service: {service_name}"
+                )
 
     def initialize(self) -> None:
         """Initialize the plugin."""
@@ -166,5 +186,3 @@ class Plugin(ABC):
         """Disable the plugin."""
         self.enabled = False
         self.logger.info(f"Disabled '{self.name}'")
-
-

@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
+
 def observe(q: Queue, fn: Callable) -> Subject:
     subject = Subject()
     subject.subscribe(fn)
@@ -35,6 +36,7 @@ def event_context(e: threading.Event):
     finally:
         e.clear()
 
+
 def ensure_model_exists(base_url: str, model: str):
     o_client = Client(base_url)
     models = o_client.list().get("models")
@@ -44,4 +46,3 @@ def ensure_model_exists(base_url: str, model: str):
 
         for _ in tqdm(o_client.pull(model, stream=True)):
             pass
-

@@ -22,4 +22,6 @@ OLLAMA_LLM_TEMPERATURE = int(os.environ.get("OLLAMA_LLM_TEMPERATURE", 0.2))
 OLLAMA_MODEL_KEEP_ALIVE = os.environ.get("OLLAMA_MODEL_KEEP_ALIVE", "1h")
 
 INITIAL_SYSTEM_PROMPT = f"You are a helpful AI assistant. Your name is {ASSISTANT_NAME}. Your answers always short and concise."
-INTERRUPT_PROMPT = f"Note, {ASSISTANT_NAME}, you were interrupted by a user with previous message."
+INTERRUPT_PROMPT = (
+    f"Note, {ASSISTANT_NAME}, you were interrupted by a user with previous message."
+)

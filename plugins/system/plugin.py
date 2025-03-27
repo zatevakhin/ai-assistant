@@ -37,7 +37,6 @@ class SystemIII(Plugin):
         _, future = self.call_service_async("transcriber", "transcribe_speech", segment)
         future.add_done_callback(self.on_transcription_complete)
 
-
     def on_transcription_complete(self, future: Future):
         try:
             result = future.result()
@@ -46,7 +45,3 @@ class SystemIII(Plugin):
 
         except Exception as e:
             self.logger.error(f"Transcription failed: {e}")
-
-
-
-

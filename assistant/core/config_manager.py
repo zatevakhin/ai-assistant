@@ -13,7 +13,7 @@ class ConfigManager:
         if not os.path.exists(self.config_path):
             return {"system": {}, "plugins": {}}
 
-        with open(self.config_path, 'r') as file:
+        with open(self.config_path, "r") as file:
             return yaml.safe_load(file) or {"system": {}, "plugins": {}}
 
     def get_system_config(self) -> Dict[str, Any]:
@@ -29,4 +29,3 @@ class ConfigManager:
         """Check if a plugin is enabled in the configuration."""
         plugin_config = self.get_plugin_config(plugin_name)
         return plugin_config.get("enabled", False)
-

@@ -2,19 +2,23 @@ from functools import wraps
 from typing import Callable, Optional, Any, TypeVar, cast, overload
 import inspect
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
+
 
 # First overload: when used as @service
 @overload
 def service(func: F) -> F: ...
 
+
 # Second overload: when used as @service() or @service("name")
 @overload
 def service(name: str) -> Callable[[F], F]: ...
 
+
 # Third overload: when used as @service(name="name")
 @overload
 def service(*, name: Optional[str] = None) -> Callable[[F], F]: ...
+
 
 def service(func: Any = None, *, name: Optional[str] = None) -> Any:
     """
@@ -40,13 +44,12 @@ def service(func: Any = None, *, name: Optional[str] = None) -> Any:
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             return fn(*args, **kwargs)
 
-        setattr(wrapper, '_is_service', True)
-        setattr(wrapper, '_service_name', name or fn.__name__)
-        setattr(wrapper, '_is_async', inspect.iscoroutinefunction(fn))
+        setattr(wrapper, "_is_service", True)
+        setattr(wrapper, "_service_name", name or fn.__name__)
+        setattr(wrapper, "_is_async", inspect.iscoroutinefunction(fn))
         return cast(F, wrapper)
 
     # Handle both @service and @service(name="...") syntaxes
     if func is not None:
         return decorator(func)
     return decorator
-

@@ -1,5 +1,11 @@
 import threading
-from langchain.schema import HumanMessage, StrOutputParser, SystemMessage, AIMessage, BaseMessage
+from langchain.schema import (
+    HumanMessage,
+    StrOutputParser,
+    SystemMessage,
+    AIMessage,
+    BaseMessage,
+)
 from pydantic import BaseModel, Field
 from assistant.core import Plugin, service
 from typing import List
@@ -13,9 +19,11 @@ from assistant.config import (
     INITIAL_SYSTEM_PROMPT,
 )
 
+
 class StreamToken(BaseModel):
     token: str = Field(repr=True)
     done: bool = Field(repr=True)
+
 
 class QueryResponse(BaseModel):
     tokens: List[StreamToken] = Field(default_factory=list)
@@ -71,21 +79,16 @@ class Ollama(Plugin):
     def ask(self, query: str):
         self.history.append(HumanMessage(content=query))
 
-
         with event_context(self.is_inferencing):
             query_response = QueryResponse(tokens=[], interrupted=False)
 
             for token in self.chain.stream(self.history):
                 if self.is_interrupt.is_set():
                     self.is_interrupt.clear()
-                    query_response.interrupted = True;
+                    query_response.interrupted = True
                     break
                 query_response.add(token)
                 yield token
 
             response = "".join(map(lambda t: t.token, query_response.tokens))
             self.history.append(AIMessage(content=response))
-
-
-
-

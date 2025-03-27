@@ -8,17 +8,22 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 class ServiceInfo:
     """Information about a registered service"""
+
     def __init__(self, method: Callable, is_async: bool):
         self.method = method
         self.is_async = is_async
+
 
 class EventBus:
     def __init__(self):
         self.subjects: Dict[str, Subject] = {}
         self.event_registry: Dict[str, str] = {}  # event_id -> plugin_name
-        self.services: Dict[str, Dict[str, ServiceInfo]] = {}  # plugin_name -> {service_name -> ServiceInfo}
+        self.services: Dict[
+            str, Dict[str, ServiceInfo]
+        ] = {}  # plugin_name -> {service_name -> ServiceInfo}
         self.thread_pool = ThreadPoolExecutor(max_workers=10)
         self.pending_calls: Dict[str, Future] = {}  # request_id -> Future
 
@@ -26,7 +31,9 @@ class EventBus:
         """Register an event with the bus. Return True if successful, False if already registered."""
         if event_id in self.event_registry:
             if self.event_registry[event_id] != plugin_name:
-                logger.error(f"Event '{event_id}' already registered by plugin {self.event_registry[event_id]}")
+                logger.error(
+                    f"Event '{event_id}' already registered by plugin {self.event_registry[event_id]}"
+                )
                 return False
             return True  # Already registered by the same plugin
 
@@ -75,7 +82,9 @@ class EventBus:
         """Get all registered events and their owning plugins."""
         return self.event_registry.copy()
 
-    def register_service(self, plugin_name: str, service_name: str, method: Callable) -> bool:
+    def register_service(
+        self, plugin_name: str, service_name: str, method: Callable
+    ) -> bool:
         """
         Register a service method with the bus.
         """
@@ -83,12 +92,16 @@ class EventBus:
             self.services[plugin_name] = {}
 
         if service_name in self.services[plugin_name]:
-            logger.warning(f"Service '{service_name}' already registered for plugin '{plugin_name}'")
+            logger.warning(
+                f"Service '{service_name}' already registered for plugin '{plugin_name}'"
+            )
             return False
 
         is_async = hasattr(method, "_is_async") and getattr(method, "_is_async")
         self.services[plugin_name][service_name] = ServiceInfo(method, is_async)
-        logger.info(f"Registered service '{service_name}' ({'async' if is_async else 'sync'}) for plugin '{plugin_name}'")
+        logger.info(
+            f"Registered service '{service_name}' ({'async' if is_async else 'sync'}) for plugin '{plugin_name}'"
+        )
         return True
 
     def call_service(self, plugin_name: str, service_name: str, *args, **kwargs) -> Any:
@@ -102,16 +115,22 @@ class EventBus:
         service_info = self._get_service_info(plugin_name, service_name)
 
         if service_info.is_async:
-            raise ValueError(f"Service '{service_name}' on plugin '{plugin_name}' is async. Use call_service_async instead.")
+            raise ValueError(
+                f"Service '{service_name}' on plugin '{plugin_name}' is async. Use call_service_async instead."
+            )
 
         try:
             # Call the synchronous service method directly
             return service_info.method(*args, **kwargs)
         except Exception as e:
-            logger.error(f"Error calling service '{service_name}' on plugin '{plugin_name}' (request {request_id}): {e}")
+            logger.error(
+                f"Error calling service '{service_name}' on plugin '{plugin_name}' (request {request_id}): {e}"
+            )
             raise
 
-    def call_service_async(self, plugin_name: str, service_name: str, *args, **kwargs) -> Tuple[str, Future]:
+    def call_service_async(
+        self, plugin_name: str, service_name: str, *args, **kwargs
+    ) -> Tuple[str, Future]:
         """
         Asynchronously call a service method on a plugin.
         This method should ONLY be used for asynchronous service methods.
@@ -122,7 +141,9 @@ class EventBus:
         service_info = self._get_service_info(plugin_name, service_name)
 
         if not service_info.is_async:
-            raise ValueError(f"Service '{service_name}' on plugin '{plugin_name}' is not async. Use call_service instead.")
+            raise ValueError(
+                f"Service '{service_name}' on plugin '{plugin_name}' is not async. Use call_service instead."
+            )
 
         def async_wrapper():
             loop = asyncio.new_event_loop()
@@ -151,7 +172,9 @@ class EventBus:
             raise ValueError(f"Plugin '{plugin_name}' has no registered services")
 
         if service_name not in self.services[plugin_name]:
-            raise ValueError(f"Service '{service_name}' not found in plugin '{plugin_name}'")
+            raise ValueError(
+                f"Service '{service_name}' not found in plugin '{plugin_name}'"
+            )
 
         return self.services[plugin_name][service_name]
 
@@ -212,7 +235,9 @@ class EventBus:
         """
         Get all registered services and their owning plugins.
         """
-        return {plugin: list(services.keys()) for plugin, services in self.services.items()}
+        return {
+            plugin: list(services.keys()) for plugin, services in self.services.items()
+        }
 
     def get_plugin_services(self, plugin_name: str) -> List[str]:
         """
@@ -222,4 +247,3 @@ class EventBus:
             return []
 
         return list(self.services[plugin_name].keys())
-

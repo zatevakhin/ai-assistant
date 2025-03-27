@@ -15,10 +15,12 @@ from assistant.components.audio import enrich_with_silence
 import numpy as np
 from datetime import datetime
 
+
 @pytest.fixture(scope="module")
 def event_bus():
     eb = EventBus()
     yield eb
+
 
 @pytest.fixture(scope="module")
 def transcriber(event_bus: EventBus):
@@ -30,11 +32,10 @@ def transcriber(event_bus: EventBus):
 
 
 def test_transcribe_speech(_: SpeechTranscriberProcess, event_bus: EventBus):
-
     test_text = "Hello, World!"
 
     tts = PiperTts(PIPER_TTS_MODEL, PIPER_MODELS_LOCATION)
-    speech, samplerate  = tts.synthesize_stream(test_text)
+    speech, samplerate = tts.synthesize_stream(test_text)
     audio = resampy.resample(speech.astype(np.float32) / 32768.0, samplerate, 16000)
     audio = enrich_with_silence(audio, 16000, 0.2, 1.0)
 
@@ -46,6 +47,5 @@ def test_transcribe_speech(_: SpeechTranscriberProcess, event_bus: EventBus):
 
     transcription = transcriptions_queue.get()
 
-    strip_special_chars = partial(lambda x: re.sub(r'[^A-Za-z0-9 ]+', '', x.lower()))
+    strip_special_chars = partial(lambda x: re.sub(r"[^A-Za-z0-9 ]+", "", x.lower()))
     assert strip_special_chars(test_text) == strip_special_chars(transcription["text"])
-
