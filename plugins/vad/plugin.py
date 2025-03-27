@@ -42,6 +42,7 @@ class VadFilter(Plugin):
 
     def initialize(self) -> None:
         super().initialize()
+        self.logger.setLevel(self.get_config("log_level", "INFO"))
         self.add_dependency("mumble")
 
         # FIXME: Memleak if works too long. Need cleanup.

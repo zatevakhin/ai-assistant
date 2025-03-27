@@ -1,15 +1,16 @@
 import logging
 import inspect
 from abc import ABC, abstractmethod
-from typing import List, Any, Set, Callable, Optional, Tuple
+from typing import Dict, List, Any, Set, Callable, Optional, Tuple
 from concurrent.futures import Future
 from .event_bus import EventBus
 
 
 class Plugin(ABC):
-    def __init__(self, name: str, event_bus: EventBus):
+    def __init__(self, name: str, event_bus: EventBus, config: Optional[Dict[str, Any]] = None):
         self.name = name
         self.event_bus = event_bus
+        self.config = config or {}
         self.logger = logging.getLogger(f"plugin.{name}")
         self.logger.setLevel(logging.INFO)
         self.enabled = True
@@ -28,6 +29,10 @@ class Plugin(ABC):
     def get_event_definitions(self) -> List[str]:
         """Return a list of event constants defined by this plugin."""
         pass
+
+    def get_config(self, key: str, default: Any = None) -> Any:
+        """Get a configuration value for this plugin."""
+        return self.config.get(key, default)
 
     def register_events(self) -> None:
         """Register the plugin's events with the event bus."""

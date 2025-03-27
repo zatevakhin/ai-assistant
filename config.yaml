@@ -1,0 +1,30 @@
+system:
+  plugins_dir: ["plugins"]
+  log_level: "INFO"
+
+plugins:
+  mumble:
+    enabled: true
+    log_level: "INFO"
+    server:
+      host: "localhost"
+      port: 64738
+  vad:
+    enabled: true
+    log_level: "INFO"
+  transcriber:
+    enabled: true
+    log_level: "INFO"
+  system:
+    enabled: true
+    log_level: "INFO"
+  ollama:
+    enabled: true
+    log_level: "INFO"
+  shadow:
+    enabled: true
+    log_level: "INFO"
+  recorder:
+    enabled: false
+    log_level: "INFO"
+

@@ -6,12 +6,14 @@ import logging
 from typing import Dict, List, Optional, Tuple
 from .event_bus import EventBus
 from .plugin import Plugin
+from .config_manager import ConfigManager
 
 class PluginManager:
-    def __init__(self, plugin_dirs=None):
+    def __init__(self, config_path: str = "config.yaml"):
         self.event_bus = EventBus()
+        self.config_manager = ConfigManager(config_path)
         self.plugins: Dict[str, Plugin] = {}
-        self.plugin_dirs = plugin_dirs or ["plugins"]
+        self.plugin_dirs = self.config_manager.get_system_config().get("plugins_dir", ["plugins"])
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
 
@@ -52,7 +54,12 @@ class PluginManager:
         plugin_classes = self.discover_plugins()
         for name, plugin_class in plugin_classes:
             try:
-                plugin = plugin_class(name, self.event_bus)
+                if not self.config_manager.is_plugin_enabled(name):
+                    self.logger.info(f"Plugin '{name}' is disabled in configuration, skipping")
+                    continue
+
+                plugin_config = self.config_manager.get_plugin_config(name)
+                plugin = plugin_class(name, self.event_bus, plugin_config)
                 self.plugins[name] = plugin
                 self.logger.info(f"Loaded plugin: {name}({plugin.version})")
             except Exception as e:
