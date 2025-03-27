@@ -11,14 +11,13 @@ from langchain.schema import (
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel, Field
 
-from assistant.config import (
-    INITIAL_SYSTEM_PROMPT,
-    OLLAMA_BASE_URL,
-    OLLAMA_LLM,
-    OLLAMA_LLM_TEMPERATURE,
-)
+from assistant.config import ASSISTANT_NAME
+
 from assistant.core import Plugin, service
 from assistant.utils import ensure_model_exists, event_context
+
+
+INITIAL_SYSTEM_PROMPT = f"You are a helpful AI assistant. Your name is {ASSISTANT_NAME}. Your answers always short and concise."
 
 
 class StreamToken(BaseModel):
@@ -44,8 +43,9 @@ class Ollama(Plugin):
 
     def initialize(self) -> None:
         super().initialize()
+        model = self.get_config("model", "llama3.2:3b")
 
-        self.llm = self.create_llm(OLLAMA_LLM)
+        self.llm = self.create_llm(model)
         self.chain = self.llm | StrOutputParser()
 
         self.history: List[BaseMessage] = [
@@ -61,13 +61,15 @@ class Ollama(Plugin):
         self.logger.info(f"Plugin '{self.name}' shutdown done.")
 
     def create_llm(self, model: str):
-        ensure_model_exists(OLLAMA_BASE_URL, model)
+        url = self.get_config("url", "localhost:11434")
+        temperature = self.get_config("temperature", 0.0)
+        ensure_model_exists(url, model)
 
         self.logger.info(f"Creating Ollama using '{model}' model.")
         return ChatOllama(
-            base_url=OLLAMA_BASE_URL,
+            base_url=url,
             model=model,
-            temperature=OLLAMA_LLM_TEMPERATURE,
+            temperature=temperature,
         )
 
     @service

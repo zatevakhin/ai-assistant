@@ -1,5 +1,5 @@
-# Docker Data
-data/*
+# config
+config.yaml
 
 # temporary recording files for debug
 .recordings/*

@@ -8,8 +8,6 @@ from voice_pulse import SpeechSegment
 
 from assistant.config import (
     SPEECH_PIPELINE_SAMPLERATE,
-    WHISPERX_API_URL,
-    WHISPERX_MODEL_NAME,
 )
 from assistant.core import Plugin, service
 
@@ -42,6 +40,8 @@ class TranscriberService(Plugin):
     async def transcribe(self, segment: SpeechSegment):
         """Send speech segment to URL endpoint for transcription"""
 
+        whisperx = self.get_config("whisperx", {})
+
         try:
             audio = io.BytesIO()
             sf.write(
@@ -52,13 +52,15 @@ class TranscriberService(Plugin):
             )
             audio.seek(0)
 
+            url = whisperx.get("url", "http://localhost:8000")
+
             response = requests.post(
-                f"{WHISPERX_API_URL}/transcribe",
+                f"{url}/transcribe",
                 files={"file": ("audio.flac", audio, "audio/flac")},
                 data={
-                    "whisper_model": WHISPERX_MODEL_NAME,
-                    "diarize": True,
-                    "align_words": True,
+                    "whisper_model": whisperx.get("model", "tiny"),
+                    "diarize": whisperx.get("diarize", False),
+                    "align_words": whisperx.get("align", False),
                 },
             )
 

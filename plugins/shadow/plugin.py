@@ -3,18 +3,12 @@ from enum import Enum
 from typing import List
 
 from langchain.schema import (
-    BaseMessage,
     HumanMessage,
     SystemMessage,
 )
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel, Field
 
-from assistant.config import (
-    INITIAL_SYSTEM_PROMPT,
-    OLLAMA_BASE_URL,
-    OLLAMA_LLM_TEMPERATURE,
-)
 from assistant.core import Plugin, service
 from assistant.utils import ensure_model_exists, event_context
 from plugins.ollama.plugin import StreamToken
@@ -66,12 +60,8 @@ class Shadow(Plugin):
 
     def initialize(self) -> None:
         super().initialize()
-        # TODO: Make it configurable
-        self.llm = self.create_llm("llama3.2:3b")
-
-        self.history: List[BaseMessage] = [
-            SystemMessage(content=INITIAL_SYSTEM_PROMPT),
-        ]
+        model = self.get_config("model", "llama3.2:3b")
+        self.llm = self.create_llm(model)
 
         # Conversation context that we're building
         self.context: List[str] = []
@@ -84,13 +74,15 @@ class Shadow(Plugin):
         self.logger.info(f"Plugin '{self.name}' shutdown done.")
 
     def create_llm(self, model: str):
-        ensure_model_exists(OLLAMA_BASE_URL, model)
+        url = self.get_config("url", "localhost:11434")
+        temperature = self.get_config("temperature", 0.0)
+        ensure_model_exists(url, model)
 
         self.logger.info(f"Creating Ollama using '{model}' model.")
         return ChatOllama(
-            base_url=OLLAMA_BASE_URL,
+            base_url=url,
             model=model,
-            temperature=OLLAMA_LLM_TEMPERATURE,
+            temperature=temperature,
         )
 
     @service

@@ -15,16 +15,28 @@ plugins:
   transcriber:
     enabled: true
     log_level: "INFO"
+    whisperx:
+      url: http://localhost:8000
+      model: tiny
+      diarize: true
+      align: true
   system:
     enabled: true
     log_level: "INFO"
   ollama:
     enabled: true
     log_level: "INFO"
+    model: "llama3.2:3b"
+    temperature: 0.0
+    url: "http://localhost:11434"
   shadow:
     enabled: true
     log_level: "INFO"
+    model: "llama3.2:3b"
+    temperature: 0.0
+    url: "http://localhost:11434"
   recorder:
     enabled: false
     log_level: "INFO"
+    location: ./.recordings
 

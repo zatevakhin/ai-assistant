@@ -5,18 +5,13 @@ import soundfile as sf
 from voice_pulse import SpeechSegment
 
 from assistant.config import SPEECH_PIPELINE_SAMPLERATE
-from assistant.core import EventBus, Plugin, service
+from assistant.core import Plugin, service
 from plugins.vad.events import VAD_SPEECH_DETECT
 
 from . import events
 
 
 class SpeechRecorder(Plugin):
-    def __init__(self, name: str, event_bus: EventBus):
-        super().__init__(name, event_bus)
-        # NOTE: Debug plugin, don't use in prod.
-        self.enabled = True
-
     @property
     def version(self) -> str:
         return "0.0.1"
@@ -28,8 +23,9 @@ class SpeechRecorder(Plugin):
 
     def initialize(self) -> None:
         super().initialize()
+        self.recordings_dir = self.get_config("location", "/tmp/speech-recordings/")
+
         self.add_dependency("vad")
-        self.recordings_dir = "./.recordings/"
         if not os.path.exists(self.recordings_dir):
             os.mkdir(self.recordings_dir)
 
