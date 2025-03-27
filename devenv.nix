@@ -18,8 +18,6 @@ in {
   env =
     {
       PYTHONPATH = ".";
-      OLLAMA_BASE_URL = "http://localhost:11434";
-      # OLLAMA_BASE_URL = "http://ollama.homeworld.lan";
     }
     // lib.optionalAttrs pkgs.stdenv.isLinux {
       # FIX: NixOS User problems
