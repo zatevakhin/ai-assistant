@@ -33,6 +33,35 @@ name = "pytorch"
 url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
 
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+
+exclude = [
+    ".git",
+    ".venv",
+    ".devenv",
+    ".direnv",
+]
+
+fixable = ["ALL"]
+unfixable = ["F401"]
+
+[tool.ruff.lint.isort]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

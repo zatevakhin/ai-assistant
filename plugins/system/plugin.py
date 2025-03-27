@@ -1,10 +1,12 @@
 from concurrent.futures import Future
-from assistant.core import Plugin
 from typing import List
+
 from voice_pulse import SpeechSegment
 
-from . import events
+from assistant.core import Plugin
 from plugins.vad.events import VAD_SPEECH_DETECT
+
+from . import events
 
 
 class SystemIII(Plugin):

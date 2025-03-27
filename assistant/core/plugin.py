@@ -1,8 +1,9 @@
-import logging
 import inspect
+import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Set, Callable, Optional, Tuple
 from concurrent.futures import Future
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+
 from .event_bus import EventBus
 
 

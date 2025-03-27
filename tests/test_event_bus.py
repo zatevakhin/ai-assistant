@@ -2,8 +2,9 @@
 Tests for the EventBus component.
 """
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from assistant.core.event_bus import EventBus
 from assistant.core.service import service

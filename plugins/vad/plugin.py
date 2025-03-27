@@ -1,15 +1,15 @@
 from functools import partial
-from reactivex.scheduler import NewThreadScheduler
-from assistant.core import Plugin
 from typing import Dict, Final, List
+
 import reactivex as rx
 from reactivex import operators as ops
+from reactivex.scheduler import NewThreadScheduler
 from voice_pulse import (
-    ListenerStamped,
     Config,
-    VadEngine,
-    VadAggressiveness,
+    ListenerStamped,
     SpeechSegment,
+    VadAggressiveness,
+    VadEngine,
 )
 from voice_pulse.input_sources import CallbackInput
 
@@ -18,11 +18,11 @@ from assistant.config import (
     SPEECH_PIPELINE_SAMPLERATE,
     VAD_SILENCE_THRESHOLD,
 )
+from assistant.core import Plugin
+from plugins.mumble.events import MUMBLE_AUDIO_CHUNK
 from plugins.mumble.plugin import AudioChunk
 
 from . import events
-from plugins.mumble.events import MUMBLE_AUDIO_CHUNK
-
 
 STREAM_CONFIG: Final = Config(
     device=None,

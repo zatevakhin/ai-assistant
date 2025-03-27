@@ -3,9 +3,9 @@ from datetime import datetime
 from typing import Callable
 
 import numpy as np
-from numpy.typing import NDArray
 import resampy
 import soundfile as sf
+from numpy.typing import NDArray
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from pymumble_py3.soundqueue import SoundChunk
 

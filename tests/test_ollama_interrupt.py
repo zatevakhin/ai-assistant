@@ -1,8 +1,9 @@
-import ollama
-import threading
-import time
 import os
 import sys
+import threading
+import time
+
+import ollama
 import pytest
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")

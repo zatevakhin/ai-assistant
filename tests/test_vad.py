@@ -1,21 +1,23 @@
+import warnings
 from queue import Queue
 from time import sleep
-from numpy.typing import NDArray
+
 import pytest
 import resampy
-import warnings
+from numpy.typing import NDArray
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from assistant.components import VadProcess, EventBus, EventType
+import numpy as np
+from voice_forge import PiperTts
+
+from assistant.components import EventBus, EventType, VadProcess
+from assistant.components.audio import chop_audio, enrich_with_silence
 from assistant.config import (
-    PIPER_TTS_MODEL,
     PIPER_MODELS_LOCATION,
+    PIPER_TTS_MODEL,
     SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
 )
-from voice_forge import PiperTts
-from assistant.components.audio import chop_audio, enrich_with_silence
-import numpy as np
 
 
 @pytest.fixture(scope="module")

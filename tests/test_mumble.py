@@ -1,19 +1,21 @@
-import warnings
-import pytest
-import numpy as np
 import time
-import resampy
+import warnings
 from queue import Queue
+
+import numpy as np
+import pytest
+import resampy
 
 from assistant.components.audio import audio_length
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from assistant.components import MumbleProcess, Sentence, EventBus, EventType
-from assistant.config import PIPER_TTS_MODEL, PIPER_MODELS_LOCATION
+import pymumble_py3
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from voice_forge import PiperTts
-import pymumble_py3
+
+from assistant.components import EventBus, EventType, MumbleProcess, Sentence
+from assistant.config import PIPER_MODELS_LOCATION, PIPER_TTS_MODEL
 
 
 @pytest.fixture(scope="module")

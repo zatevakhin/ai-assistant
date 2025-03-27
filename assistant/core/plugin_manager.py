@@ -1,12 +1,13 @@
-import os
 import importlib
 import inspect
-import pkgutil
 import logging
+import os
+import pkgutil
 from typing import Dict, List, Optional, Tuple
+
+from .config_manager import ConfigManager
 from .event_bus import EventBus
 from .plugin import Plugin
-from .config_manager import ConfigManager
 
 
 class PluginManager:

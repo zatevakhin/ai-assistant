@@ -1,10 +1,11 @@
-from reactivex.subject import Subject
-from typing import Callable
-from queue import Queue
+import logging
 import threading
 from contextlib import contextmanager
-import logging
+from queue import Queue
+from typing import Callable
+
 from ollama import Client
+from reactivex.subject import Subject
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)

@@ -1,12 +1,14 @@
-from assistant.config import SPEECH_PIPELINE_SAMPLERATE
-from assistant.core import Plugin, EventBus, service
-from typing import List
-from voice_pulse import SpeechSegment
-import soundfile as sf
 import os
+from typing import List
+
+import soundfile as sf
+from voice_pulse import SpeechSegment
+
+from assistant.config import SPEECH_PIPELINE_SAMPLERATE
+from assistant.core import EventBus, Plugin, service
+from plugins.vad.events import VAD_SPEECH_DETECT
 
 from . import events
-from plugins.vad.events import VAD_SPEECH_DETECT
 
 
 class SpeechRecorder(Plugin):

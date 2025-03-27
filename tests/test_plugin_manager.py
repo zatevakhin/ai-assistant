@@ -3,13 +3,14 @@ Tests for the Plugin and PluginManager components.
 """
 
 import asyncio
+from unittest.mock import MagicMock, call, patch
+
 import pytest
-from unittest.mock import MagicMock, patch, call
+
 from assistant.core.event_bus import EventBus
 from assistant.core.plugin import Plugin
 from assistant.core.plugin_manager import PluginManager
 from assistant.core.service import service
-
 
 # --- Plugin class implementations for testing ---
 

@@ -1,22 +1,22 @@
-from enum import Enum
 import threading
-from langchain.schema import (
-    HumanMessage,
-    SystemMessage,
-    BaseMessage,
-)
-from pydantic import BaseModel, Field
-from assistant.core import Plugin, service
+from enum import Enum
 from typing import List
 
-from langchain_ollama import ChatOllama
-from assistant.utils import ensure_model_exists, event_context
-from assistant.config import (
-    OLLAMA_LLM_TEMPERATURE,
-    OLLAMA_BASE_URL,
-    INITIAL_SYSTEM_PROMPT,
+from langchain.schema import (
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
 )
+from langchain_ollama import ChatOllama
+from pydantic import BaseModel, Field
 
+from assistant.config import (
+    INITIAL_SYSTEM_PROMPT,
+    OLLAMA_BASE_URL,
+    OLLAMA_LLM_TEMPERATURE,
+)
+from assistant.core import Plugin, service
+from assistant.utils import ensure_model_exists, event_context
 from plugins.ollama.plugin import StreamToken
 
 DECISION_SYSTEM_PROMPT = """

@@ -1,15 +1,17 @@
-from typing import List
-import requests
 import io
-from assistant.core import Plugin, service
+from typing import List
+
+import numpy as np
+import requests
+import soundfile as sf
 from voice_pulse import SpeechSegment
+
 from assistant.config import (
     SPEECH_PIPELINE_SAMPLERATE,
     WHISPERX_API_URL,
     WHISPERX_MODEL_NAME,
 )
-import soundfile as sf
-import numpy as np
+from assistant.core import Plugin, service
 
 from .types import Transcript
 

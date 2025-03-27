@@ -1,19 +1,22 @@
-from queue import Queue
-import pytest
-import resampy
+import re
 import warnings
 from functools import partial
-import re
+from queue import Queue
+
+import pytest
+import resampy
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from assistant.components import SpeechTranscriberProcess, EventBus, EventType
-from assistant.config import PIPER_TTS_MODEL, PIPER_MODELS_LOCATION
+from datetime import datetime
+
+import numpy as np
 from voice_forge import PiperTts
 from voice_pulse import SpeechSegment
+
+from assistant.components import EventBus, EventType, SpeechTranscriberProcess
 from assistant.components.audio import enrich_with_silence
-import numpy as np
-from datetime import datetime
+from assistant.config import PIPER_MODELS_LOCATION, PIPER_TTS_MODEL
 
 
 @pytest.fixture(scope="module")

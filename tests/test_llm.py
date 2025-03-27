@@ -1,14 +1,15 @@
+import warnings
 from queue import Queue
 from time import sleep
+
 import pytest
-import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from assistant.components import (
-    LlmInferenceProcess,
     EventBus,
     EventType,
+    LlmInferenceProcess,
     TranscribedSegment,
 )
 

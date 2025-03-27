@@ -1,7 +1,8 @@
-import ollama
-import time
 import concurrent.futures
 import os
+import time
+
+import ollama
 import pytest
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")

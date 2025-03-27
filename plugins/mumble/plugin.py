@@ -1,36 +1,35 @@
+import threading
 from datetime import datetime
 from functools import partial
-
-from pydantic import BaseModel, Field
-from pymumble_py3.channels import Channel
-from pymumble_py3.soundqueue import SoundChunk
-from pymumble_py3.users import User
-from assistant.core import Plugin, service
-from typing import Any, Dict, List
-from numpy.typing import NDArray
-import numpy as np
-import threading
 from queue import Queue
-import reactivex as rx
-from reactivex import operators as ops
 from time import sleep
+from typing import Any, Dict, List
 
+import numpy as np
+import reactivex as rx
+from numpy.typing import NDArray
+from pydantic import BaseModel, Field
 from pymumble_py3 import Mumble
 from pymumble_py3.callbacks import (
-    PYMUMBLE_CLBK_SOUNDRECEIVED,
     PYMUMBLE_CLBK_CONNECTED,
     PYMUMBLE_CLBK_DISCONNECTED,
+    PYMUMBLE_CLBK_SOUNDRECEIVED,
     PYMUMBLE_CLBK_USERUPDATED,
 )
+from pymumble_py3.channels import Channel
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
+from pymumble_py3.soundqueue import SoundChunk
+from pymumble_py3.users import User
+from reactivex import operators as ops
+
 from assistant.config import (
     ASSISTANT_NAME,
-    SPEECH_PIPELINE_SAMPLERATE,
     SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
+    SPEECH_PIPELINE_SAMPLERATE,
 )
+from assistant.core import Plugin, service
+from assistant.utils import AudioBufferTransformer, chop_audio, observe
 
-from assistant.utils import observe
-from assistant.utils import AudioBufferTransformer, chop_audio
 from . import events
 
 

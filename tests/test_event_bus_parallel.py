@@ -1,6 +1,8 @@
-import pytest
 import asyncio
 import time
+
+import pytest
+
 from assistant.core import EventBus, service
 
 

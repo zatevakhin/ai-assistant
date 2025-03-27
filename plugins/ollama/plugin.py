@@ -1,23 +1,24 @@
 import threading
+from typing import List
+
 from langchain.schema import (
+    AIMessage,
+    BaseMessage,
     HumanMessage,
     StrOutputParser,
     SystemMessage,
-    AIMessage,
-    BaseMessage,
 )
-from pydantic import BaseModel, Field
-from assistant.core import Plugin, service
-from typing import List
-
 from langchain_ollama import ChatOllama
-from assistant.utils import ensure_model_exists, event_context
+from pydantic import BaseModel, Field
+
 from assistant.config import (
-    OLLAMA_LLM_TEMPERATURE,
-    OLLAMA_LLM,
-    OLLAMA_BASE_URL,
     INITIAL_SYSTEM_PROMPT,
+    OLLAMA_BASE_URL,
+    OLLAMA_LLM,
+    OLLAMA_LLM_TEMPERATURE,
 )
+from assistant.core import Plugin, service
+from assistant.utils import ensure_model_exists, event_context
 
 
 class StreamToken(BaseModel):

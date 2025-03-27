@@ -1,9 +1,10 @@
-import time
 import logging
+import time
+
 import click
 from rich.logging import RichHandler
 
-from assistant.core import PluginManager, ConfigManager
+from assistant.core import ConfigManager, PluginManager
 
 logging.basicConfig(
     level=logging.WARNING, format="%(message)s", handlers=[RichHandler()]
