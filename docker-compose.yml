@@ -19,24 +19,20 @@ services:
       - "11434:11434"
     restart: unless-stopped
 
-  # NOTE: Don't use assistant service, it isn't ready.
-  # assistant:
-  #   build:
-  #     context: .
-  #     dockerfile: assistant.Dockerfile
-  #   image: assistant:latest
-  #   volumes:
-  #     - assistant_data:/data/piper-models
-  #     - assistant_data:/data/whisper-models
-  #     - assistant_data:/data/vad-records
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - ollama
-  #     - mumble
-  #   environment:
-  #     - MUMBLE_SERVER_HOST=mumble
+  whisperx-api:
+    build:
+      context: https://github.com/zatevakhin/whisperx-api.git
+      dockerfile: gpu.Dockerfile
+    runtime: nvidia
+    privileged: true
+    volumes:
+      - whisperx_data:/models
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
 
 volumes:
   mumble_data:
   ollama_data:
-  assistant_data:
+  whisperx_data:
