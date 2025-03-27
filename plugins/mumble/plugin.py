@@ -25,10 +25,6 @@ from pymumble_py3.callbacks import (
 from pymumble_py3.constants import PYMUMBLE_SAMPLERATE
 from assistant.config import (
     ASSISTANT_NAME,
-    MUMBLE_SERVER_HOST,
-    MUMBLE_SERVER_PASSWORD,
-    MUMBLE_SERVER_PORT,
-    MUMBLE_SERVER_CHANNEL,
     SPEECH_PIPELINE_SAMPLERATE,
     SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
 )
@@ -68,14 +64,19 @@ class MumbleInterface(Plugin):
 
     def initialize(self) -> None:
         super().initialize()
-        # self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(self.get_config("log_level", "INFO"))
+        mumble_server = self.get_config("server", {})
+        mumble_host = mumble_server.get("host", "127.0.0.1")
+        mumble_port = mumble_server.get("port", 64738)
+        mumble_password = mumble_server.get("password", "")
+        mumble_channel = mumble_server.get("channel", None)
 
         # TODO: Get or create
         self.client = Mumble(
-            host=MUMBLE_SERVER_HOST,
+            host=mumble_host,
+            port=mumble_port,
+            password=mumble_password,
             user=ASSISTANT_NAME,
-            port=MUMBLE_SERVER_PORT,
-            password=MUMBLE_SERVER_PASSWORD,
         )
 
         self.playback_queue = Queue()
@@ -100,12 +101,12 @@ class MumbleInterface(Plugin):
         self.client.set_receive_sound(True)
         self.client.start()
         self.logger.info(
-            f"Plugin '{self.name}' connecting to server: '{MUMBLE_SERVER_HOST}:{MUMBLE_SERVER_PORT}'"
+            f"Plugin '{self.name}' connecting to server: '{mumble_host}:{mumble_port}'"
         )
         self.client.is_ready() # waits connection
 
-        if MUMBLE_SERVER_CHANNEL:
-            if channel := self.client.channels.find_by_name(MUMBLE_SERVER_CHANNEL):
+        if mumble_channel:
+            if channel := self.client.channels.find_by_name(mumble_channel):
                 channel: Channel = channel
                 channel.move_in()
                 # NOTE: Need to wait a bit before getting list of users on channel.
