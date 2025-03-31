@@ -37,7 +37,9 @@ in {
       git
       zsh
       curl
+      libz
       libopus
+      ffmpeg
       gcc-unwrapped.lib
     ]
     ++ cuda;
