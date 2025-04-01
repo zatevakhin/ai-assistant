@@ -9,6 +9,7 @@ from assistant.components.transcriber import events as tt
 from assistant.components.system.main import SystemIII
 from assistant.components.watchdog.main import Watchdog
 from assistant.components.watchdog import events as ww
+from assistant.components.shadow.main import Shadow
 import logging
 
 from rich.logging import RichHandler
@@ -30,17 +31,21 @@ def main():
     transcriber = TranscriberService(config=config)
     watchdog = Watchdog(name="watchdog", config=config)
     system = SystemIII(config=config)
+    shadow = Shadow(config=config)
+
     event_bus.register(mumble)
     event_bus.register(watchdog)
     event_bus.register(transcriber)
     event_bus.register(system)
+    event_bus.register(shadow)
 
     # mumble.on(mm.MUMBLE_CLIENT_CONNECTED, lambda: print("-> connect"))
     # mumble.on(mm.MUMBLE_CLIENT_DISCONNECTED, lambda: print("-> disconnect"))
     mumble.on(mm.MUMBLE_AUDIO_SPEECH, recorder.on_speech)
     mumble.on(mm.MUMBLE_AUDIO_SPEECH, transcriber.on_speech)
     watchdog.on(ww.WATCHDOG_AUDIO_SPEECH_DETECTED, transcriber.on_speech)
-    transcriber.on(tt.TRANSCRIPTION_SEGMENT_DONE, system.on_transcript)
+    #transcriber.on(tt.TRANSCRIPTION_SEGMENT_DONE, system.on_transcript)
+    transcriber.on(tt.TRANSCRIPTION_SEGMENT_DONE, shadow.on_transcript)
 
 
     mumble.initialize()
@@ -48,6 +53,7 @@ def main():
     transcriber.initialize()
     system.initialize()
     watchdog.initialize()
+    shadow.initialize()
 
     while True:
         try:
@@ -61,6 +67,7 @@ def main():
     transcriber.shutdown()
     system.shutdown()
     watchdog.shutdown()
+    shadow.shutdown()
 
 
 if "__main__" == __name__:
