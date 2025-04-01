@@ -2,18 +2,28 @@ import logging
 import threading
 from contextlib import contextmanager
 from queue import Queue
-from typing import Callable
+from typing import Callable, Optional
 
 from ollama import Client
 from reactivex.subject import Subject
+from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
+import re
 
 logger = logging.getLogger(__name__)
 
 
-def observe(q: Queue, fn: Callable) -> Subject:
+def observe(q: Queue, fn: Callable, threaded: bool = False, max_workers: Optional[int] = None) -> Subject:
     subject = Subject()
-    subject.subscribe(fn)
+    if threaded:
+        executor = ThreadPoolExecutor(max_workers=max_workers)
+
+        subject.subscribe(
+            on_next=lambda item: executor.submit(fn, item),
+            on_completed=lambda: executor.shutdown(wait=False),
+        )
+    else:
+        subject.subscribe(fn)
 
     def producer():
         while not subject.is_disposed:
@@ -47,3 +57,9 @@ def ensure_model_exists(base_url: str, model: str):
 
         for _ in tqdm(o_client.pull(model, stream=True)):
             pass
+
+
+def title_to_snake(s: str) -> str:
+    s = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", s)
+    s = re.sub("([a-z0-9])([A-Z])", r"\1_\2", s)
+    return s.lower()

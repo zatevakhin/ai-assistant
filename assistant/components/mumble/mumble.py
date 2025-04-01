@@ -3,7 +3,7 @@ from datetime import datetime
 from functools import partial
 from queue import Queue
 from time import sleep
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import reactivex as rx
@@ -24,12 +24,13 @@ from reactivex import operators as ops
 
 from assistant.config import (
     ASSISTANT_NAME,
-    SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
     SPEECH_PIPELINE_SAMPLERATE,
 )
-from assistant.core import Plugin, service
-from assistant.utils import AudioBufferTransformer, chop_audio, observe
-
+from assistant.core import service
+from assistant.utils import observe
+from assistant.core.component import Component
+from assistant.utils.audio import VadFilter
+from assistant.utils.audio.reshape import FixedLengthAudioChunker
 from . import events
 
 
@@ -39,25 +40,27 @@ class Sentence(BaseModel):
     length: float
 
 
-class AudioChunk(BaseModel):
+class SpeechSegment(BaseModel):
     source: str
-    data: NDArray[np.float32] = Field(repr=False)
+    data: NDArray[np.int16] = Field(repr=False)
     timestamp: datetime = Field(default_factory=datetime.now)
 
     class Config:
         arbitrary_types_allowed = True
 
 
-class MumbleInterface(Plugin):
+class MumbleInterface(Component):
     @property
     def version(self) -> str:
         return "0.0.1"
 
-    def get_event_definitions(self) -> List[str]:
+    @property
+    def events(self) -> List[str]:
         return [
             events.MUMBLE_CLIENT_CONNECTED,
             events.MUMBLE_CLIENT_DISCONNECTED,
             events.MUMBLE_AUDIO_CHUNK,
+            events.MUMBLE_AUDIO_SPEECH,
             events.MUMBLE_AUDIO_PLAY,
             events.MUMBLE_PLAYBACK_DONE,
             events.MUMBLE_PLAYBACK_IN_PROGRESS,
@@ -66,7 +69,7 @@ class MumbleInterface(Plugin):
 
     def initialize(self) -> None:
         super().initialize()
-        self.logger.setLevel(self.get_config("log_level", "INFO"))
+        self.logger.setLevel(self.get_config("log_level", "DEBUG"))
         mumble_server = self.get_config("server", {})
         mumble_host = mumble_server.get("host", "127.0.0.1")
         mumble_port = mumble_server.get("port", 64738)
@@ -83,24 +86,28 @@ class MumbleInterface(Plugin):
 
         self.playback_queue = Queue()
         sub = observe(self.playback_queue, self.on_play_from_queue)
-        self.subscriptions.append(sub)
 
-        self.is_connected = threading.Event()
         self.is_interrupted = threading.Event()
         self.is_playback_done = threading.Event()
         self.is_playback_in_progress = threading.Event()
 
-        self.buffer_transformer_per_source: Dict[str, AudioBufferTransformer] = {}
+        self.fixed_chunker_for_source: Dict[str, FixedLengthAudioChunker] = {}
+        self.speech_filter_for_source: Dict[str, VadFilter] = {}
 
         self.client.callbacks.set_callback(
             PYMUMBLE_CLBK_SOUNDRECEIVED, self.on_sound_from_source
         )
-        self.client.callbacks.set_callback(PYMUMBLE_CLBK_CONNECTED, self.on_connect)
+        self.client.callbacks.set_callback(
+            PYMUMBLE_CLBK_CONNECTED,
+            self.proxy(events.MUMBLE_CLIENT_CONNECTED),
+        )
         self.client.callbacks.set_callback(
             PYMUMBLE_CLBK_USERUPDATED, self.on_user_updated
         )
+
         self.client.callbacks.set_callback(
-            PYMUMBLE_CLBK_DISCONNECTED, self.on_disconnect
+            PYMUMBLE_CLBK_DISCONNECTED,
+            self.proxy(events.MUMBLE_CLIENT_DISCONNECTED),
         )
         self.client.set_receive_sound(True)
         self.client.start()
@@ -118,12 +125,12 @@ class MumbleInterface(Plugin):
 
         for session in self.client.my_channel().get_users():
             user: User = self.client.users[session["session"]]
-            self.add_buffer_transformer_for_source(user)
+            self.add_speech_filter(user)
 
-        self.event_bus.subscribe(events.MUMBLE_AUDIO_PLAY, self.on_play)
+        # self.event_bus.subscribe(events.MUMBLE_AUDIO_PLAY, self.on_play)
         self.logger.info(f"Plugin '{self.name}' initialized and ready")
 
-    def add_buffer_transformer_for_source(self, source: User) -> bool:
+    def add_speech_filter(self, source: User):
         username = source.get_property("name")
         assert username is not None
 
@@ -131,36 +138,23 @@ class MumbleInterface(Plugin):
             self.logger.info(f"Ignored source '{username}', because its assistant.")
             return False
 
-        if username in self.buffer_transformer_per_source:
-            self.logger.info(
-                f"Ignored source '{username}', because its have buffer transformer."
+        if username not in self.speech_filter_for_source:
+            self.speech_filter_for_source[username] = VadFilter(
+                partial(self.on_speech, source),
             )
-            return False
 
-        self.buffer_transformer_per_source[username] = AudioBufferTransformer(
-            partial(self.on_sound, source),
-            SPEECH_PIPELINE_SAMPLERATE,
-            SPEECH_PIPELINE_BUFFER_SIZE_MILIS,
-        )
-
-        self.logger.info(f"Added buffer transformer for source '{username}'.")
-
-        return True
+        if username not in self.fixed_chunker_for_source:
+            self.fixed_chunker_for_source[username] = FixedLengthAudioChunker(
+                callback=lambda chunk: self.speech_filter_for_source[username](chunk),
+                target_chunk_length_ms=32,
+                source_samplerate=PYMUMBLE_SAMPLERATE,
+                target_samplerate=SPEECH_PIPELINE_SAMPLERATE,
+            )
 
     def shutdown(self) -> None:
         super().shutdown()
         self.logger.info(f"Plugin '{self.name}' disconnection from server.")
         self.client.stop()
-
-    def on_connect(self):
-        self.logger.info(f"Plugin '{self.name}' connected")
-        self.is_connected.set()
-        self.event_bus.publish(events.MUMBLE_CLIENT_CONNECTED, None)
-
-    def on_disconnect(self):
-        self.logger.info(f"Plugin '{self.name}' disconnected")
-        self.is_connected.clear()
-        self.event_bus.publish(events.MUMBLE_CLIENT_DISCONNECTED, None)
 
     def on_user_updated(self, session, attributes):
         self.logger.info(f"on_user_updated({session}, {attributes})")
@@ -168,20 +162,21 @@ class MumbleInterface(Plugin):
 
         if my_channel == session.get("channel_id"):
             user: User = self.client.users[session["session"]]
-            self.add_buffer_transformer_for_source(user)
+            self.add_speech_filter(user)
 
     def on_sound_from_source(self, source: dict, chunk: SoundChunk):
         username = source.get("name", None)
         assert username is not None
+        self.fixed_chunker_for_source[username](chunk.pcm)
 
-        self.buffer_transformer_per_source[username](chunk)
-
-    def on_sound(self, user: User, sound: NDArray[np.float32]):
-        self.logger.debug(f"{type(sound)}, {user}")
+    def on_speech(self, user: User, speech: bytes):
+        self.logger.info(f"{type(speech)}, {user}")
         username = str(user.get_property("name"))
-        self.event_bus.publish(
-            events.MUMBLE_AUDIO_CHUNK, AudioChunk(source=username, data=sound)
-        )
+
+        buffer = np.frombuffer(speech, dtype=np.int16)
+        segment = SpeechSegment(source=username, data=buffer)
+
+        self.proxy(events.MUMBLE_AUDIO_SPEECH)(segment)
 
     def on_play(self, sentence: Sentence):
         self.logger.info(f"> on_play('{sentence.text}')")
@@ -197,7 +192,7 @@ class MumbleInterface(Plugin):
 
         def on_interrupt():
             if self.is_interrupted.is_set():
-                self.event_bus.publish(events.MUMBLE_PLAYBACK_INTERRUPT, None)
+                self.proxy(events.MUMBLE_PLAYBACK_INTERRUPT)()
                 while not self.playback_queue.empty():
                     self.playback_queue.get()
                     self.playback_queue.task_done()
@@ -209,7 +204,7 @@ class MumbleInterface(Plugin):
         def on_playback_complete():
             self.is_playback_in_progress.clear()
             self.is_playback_done.set()
-            self.event_bus.publish(events.MUMBLE_PLAYBACK_DONE, None)
+            self.proxy(events.MUMBLE_PLAYBACK_DONE)()
 
         _ = (
             rx.zip(
@@ -224,5 +219,5 @@ class MumbleInterface(Plugin):
             .subscribe(on_completed=on_playback_complete)
         )
 
-        self.event_bus.publish(events.MUMBLE_PLAYBACK_IN_PROGRESS, sentence)
+        # self.event_bus.publish(events.MUMBLE_PLAYBACK_IN_PROGRESS, sentence)
         self.is_playback_done.wait()
