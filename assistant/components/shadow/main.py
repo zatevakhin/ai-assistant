@@ -16,7 +16,6 @@ from assistant.components.transcriber.types import Transcript
 from assistant.core.component import Component
 from assistant.utils import ensure_model_exists, event_context
 from assistant.utils.utils import observe
-from plugins.ollama.plugin import StreamToken
 
 DECISION_SYSTEM_PROMPT = """
 You are an AI assistant that processes transcription chunks. Your job is to:
@@ -77,6 +76,10 @@ class MemorySummary(BaseModel):
         description="Main topics or themes discussed in the context",
         default_factory=list
     )
+
+class StreamToken(BaseModel):
+    token: str = Field(repr=True)
+    done: bool = Field(repr=True)
 
 class QueryResponse(BaseModel):
     tokens: List[StreamToken] = Field(default_factory=list)
